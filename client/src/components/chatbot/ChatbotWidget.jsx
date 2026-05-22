@@ -18,12 +18,27 @@ export default function ChatbotWidget() {
     }
   ]);
   const [isTyping, setIsTyping] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const chatEndRef = useRef(null);
 
   // Auto-scroll to the bottom of the chat list
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
+
+  // Reset unread count when chat is opened
+  useEffect(() => {
+    if (isOpen) {
+      setUnreadCount(0);
+    }
+  }, [isOpen]);
+
+  // Increment unread count when bot sends a message and widget is closed
+  useEffect(() => {
+    if (messages.length > 1 && !isOpen && messages[messages.length - 1].sender === 'bot') {
+      setUnreadCount(prev => prev + 1);
+    }
+  }, [messages, isOpen]);
 
   // Read message out loud if voice is enabled
   const speakText = (text) => {
