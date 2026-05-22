@@ -43,8 +43,16 @@ const auditLogger = (req, res, next) => {
 
 // ─── Security Middleware ────────────────────────────────────────────
 app.use(helmet());
+const allowedClientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+const localHostPattern = /^http:\/\/localhost(?::\d+)?$/;
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (origin === allowedClientUrl || localHostPattern.test(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -105,19 +113,35 @@ app.use((err, req, res, next) => {
 
 // ─── Database Connection & Server Start ───────────────────────────
 const PORT = process.env.PORT || 5000;
+let server;
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('✅ MongoDB connected successfully');
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
-      console.log(`📚 API docs: http://localhost:${PORT}/api/health`);
+const connectWithRetry = async (retries = 0) => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
     });
-  })
-  .catch((err) => {
+    console.log('✅ MongoDB connected successfully');
+
+    if (!server) {
+      server = app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+        console.log(`📚 API docs: http://localhost:${PORT}/api/health`);
+      });
+    }
+  } catch (err) {
     console.error('❌ MongoDB connection failed:', err.message);
-    process.exit(1);
-  });
+    if (retries < 5) {
+      const delay = (retries + 1) * 5000;
+      console.log(`Retrying MongoDB connection in ${delay / 1000}s... (${retries + 1}/5)`);
+      setTimeout(() => connectWithRetry(retries + 1), delay);
+    } else {
+      console.error('Exceeded MongoDB connection retries. Exiting.');
+      process.exit(1);
+    }
+  }
+};
+
+connectWithRetry();
 
 module.exports = app;
