@@ -16,6 +16,30 @@ const checkEligibility = async (req, res) => {
       });
     }
 
+    const requiredFields = [
+      'fullName',
+      'age',
+      'state',
+      'gender',
+      'category',
+      'educationLevel',
+      'stream',
+      'profession',
+      'annualFamilyIncome',
+      'cgpaOrPercentage',
+    ];
+    const missingProfileFields = requiredFields.filter(
+      (field) => profile[field] === undefined || profile[field] === null || profile[field] === ''
+    );
+
+    if (missingProfileFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please complete your profile before checking eligibility',
+        missingFields: missingProfileFields,
+      });
+    }
+
     const schemes = await Scheme.find({ isActive: true });
     if (!schemes.length) {
       return res.status(404).json({ success: false, message: 'No active schemes found' });

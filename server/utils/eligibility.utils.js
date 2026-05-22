@@ -16,6 +16,14 @@ const mapDocToProfileField = (docName) => {
   return null;
 };
 
+const formatCurrency = (value) => {
+  return Number.isFinite(value) ? `₹${value.toLocaleString('en-IN')}` : 'Not set';
+};
+
+const formatPercentage = (value) => {
+  return Number.isFinite(value) ? `${value}%` : 'Not set';
+};
+
 const checkSchemeEligibility = (profile, scheme) => {
   const matchedCriteria = [];
   const missingCriteria = [];
@@ -40,12 +48,15 @@ const checkSchemeEligibility = (profile, scheme) => {
 
   // 2. Income Check
   totalRules++;
-  if (profile.annualFamilyIncome <= criteria.maxAnnualIncome) {
+  const annualIncome = Number(profile.annualFamilyIncome);
+  const formattedIncome = formatCurrency(annualIncome);
+  const formattedIncomeLimit = formatCurrency(criteria.maxAnnualIncome);
+  if (Number.isFinite(annualIncome) && annualIncome <= criteria.maxAnnualIncome) {
     matchedRulesCount++;
-    matchedCriteria.push(`Family income (₹${profile.annualFamilyIncome.toLocaleString('en-IN')}) is within limit of ₹${criteria.maxAnnualIncome.toLocaleString('en-IN')}`);
+    matchedCriteria.push(`Family income (${formattedIncome}) is within limit of ${formattedIncomeLimit}`);
   } else {
-    missingCriteria.push(`Family income must be below ₹${criteria.maxAnnualIncome.toLocaleString('en-IN')}`);
-    rejectionReasons.push(`Your family income (₹${profile.annualFamilyIncome.toLocaleString('en-IN')}) exceeds the scheme's limit of ₹${criteria.maxAnnualIncome.toLocaleString('en-IN')}.`);
+    missingCriteria.push(`Family income must be below ${formattedIncomeLimit}`);
+    rejectionReasons.push(`Your family income (${formattedIncome}) exceeds the scheme's limit of ${formattedIncomeLimit}.`);
     suggestions.push(`Explore schemes with higher income limits, or upload an updated income certificate if your household income changed.`);
   }
 
@@ -161,8 +172,9 @@ const checkSchemeEligibility = (profile, scheme) => {
   }
 
   // Evaluate Documents
-  if (scheme.requiredDocuments && scheme.requiredDocuments.length > 0) {
-    scheme.requiredDocuments.forEach((doc) => {
+  const requiredDocuments = Array.isArray(scheme.requiredDocuments) ? scheme.requiredDocuments : [];
+  if (requiredDocuments.length > 0) {
+    requiredDocuments.forEach((doc) => {
       const field = mapDocToProfileField(doc);
       if (field) {
         if (!profile.documentUploads || !profile.documentUploads[field]) {
@@ -183,7 +195,7 @@ const checkSchemeEligibility = (profile, scheme) => {
   let eligibilityProbability = matchScore;
   if (eligible) {
     // If eligible, probability increases if documents are already uploaded
-    const docTotal = scheme.requiredDocuments.length;
+    const docTotal = requiredDocuments.length;
     const docMissing = missingDocuments.length;
     const docUploaded = docTotal - docMissing;
     const docRatio = docTotal > 0 ? docUploaded / docTotal : 1;
