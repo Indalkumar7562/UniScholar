@@ -1,0 +1,11 @@
+node_modules/
+.env
+dist/
+.DS_Store
+*.log
+.vscode/
+coverage/
+chrome-profile/
+Universal-Scholarship-System_AI-main.zip
+screenshot.js
+landing_page.png
