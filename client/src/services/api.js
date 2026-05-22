@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL}/api`,
+  baseURL: import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/api`
+    : '/api',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -45,8 +47,7 @@ export const userAPI = {
 // ─── Schemes ─────────────────────────────────────────────────────────────────
 export const schemeAPI = {
   getAll:   (params) => api.get('/schemes', { params }),
-  getById:  (id)     => api.get(`/schemes/${id}`),
-  create:   (data)   => api.post('/schemes', data),
+  getById:  (id)     => api.get(`/schemes/${id}`),  compareAndRank: () => api.get('/schemes/compare/ranked'),  create:   (data)   => api.post('/schemes', data),
   update:   (id, data) => api.put(`/schemes/${id}`, data),
   delete:   (id)     => api.delete(`/schemes/${id}`),
 };

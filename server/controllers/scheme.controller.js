@@ -1,4 +1,6 @@
 const Scheme = require('../models/Scheme.model');
+const Profile = require('../models/Profile.model');
+const { runEligibilityCheck } = require('../utils/eligibility.utils');
 
 // @desc    Get all schemes with filtering & search
 // @route   GET /api/schemes
@@ -100,4 +102,87 @@ const deleteScheme = async (req, res) => {
   }
 };
 
-module.exports = { getSchemes, getScheme, createScheme, updateScheme, deleteScheme };
+// @desc    Compare schemes with user profile and rank them
+// @route   GET /api/schemes/compare/ranked
+// @access  Private
+const compareAndRankSchemes = async (req, res) => {
+  try {
+    const profile = await Profile.findOne({ user: req.user._id });
+    if (!profile || !profile.isComplete) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please complete your profile before comparing schemes',
+      });
+    }
+
+    const schemes = await Scheme.find({ isActive: true }).sort({ createdAt: -1 });
+    if (!schemes.length) {
+      return res.status(404).json({ success: false, message: 'No active schemes found' });
+    }
+
+    // Run eligibility check for all schemes
+    const { results } = runEligibilityCheck(profile, schemes);
+
+    // Group and rank schemes
+    const eligible = results.filter(r => r.eligible).sort((a, b) => b.matchScore - a.matchScore);
+    const partialMatch = results.filter(r => !r.eligible && r.matchScore >= 50).sort((a, b) => b.matchScore - a.matchScore);
+    const lowMatch = results.filter(r => r.matchScore < 50).sort((a, b) => b.matchScore - a.matchScore);
+
+    // Enhanced response with categorized schemes
+    res.json({
+      success: true,
+      data: {
+        profile: {
+          fullName: profile.fullName,
+          age: profile.age,
+          category: profile.category,
+          state: profile.state,
+          educationLevel: profile.educationLevel,
+          stream: profile.stream,
+          annualFamilyIncome: profile.annualFamilyIncome,
+        },
+        summary: {
+          totalSchemes: schemes.length,
+          directlyEligible: eligible.length,
+          partiallyMatched: partialMatch.length,
+          lowMatched: lowMatch.length,
+          comparisonDate: new Date().toISOString(),
+        },
+        ranked: {
+          directlyEligible: eligible.map(r => ({
+            ...r.schemeData.toObject(),
+            matchScore: r.matchScore,
+            matchedCriteria: r.matchedCriteria,
+            missingCriteria: r.missingCriteria,
+            missingDocuments: r.missingDocuments,
+            suggestions: r.suggestions,
+            tier: 'Directly Eligible',
+          })),
+          partiallyMatched: partialMatch.map(r => ({
+            ...r.schemeData.toObject(),
+            matchScore: r.matchScore,
+            matchedCriteria: r.matchedCriteria,
+            missingCriteria: r.missingCriteria,
+            missingDocuments: r.missingDocuments,
+            suggestions: r.suggestions,
+            tier: 'Partially Matched',
+          })),
+          lowMatched: lowMatch.map(r => ({
+            ...r.schemeData.toObject(),
+            matchScore: r.matchScore,
+            matchedCriteria: r.matchedCriteria,
+            missingCriteria: r.missingCriteria,
+            missingDocuments: r.missingDocuments,
+            suggestions: r.suggestions,
+            tier: 'Low Match - Future Target',
+          })),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Scheme comparison error:', error);
+    res.status(500).json({ success: false, message: 'Server error during scheme comparison' });
+  }
+};
+
+module.exports = { getSchemes, getScheme, createScheme, updateScheme, deleteScheme, compareAndRankSchemes };

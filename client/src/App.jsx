@@ -3,17 +3,18 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { PageLoader } from './components/ui/index.jsx';
 import DashboardLayout from './components/layout/DashboardLayout.jsx';
 
-import LandingPage      from './pages/LandingPage.jsx';
-import LoginPage        from './pages/LoginPage.jsx';
-import RegisterPage     from './pages/RegisterPage.jsx';
-import DashboardHome    from './pages/DashboardHome.jsx';
-import ProfilePage      from './pages/ProfilePage.jsx';
-import EligibilityPage  from './pages/EligibilityPage.jsx';
-import ResultsPage      from './pages/ResultsPage.jsx';
-import SchemesPage      from './pages/SchemesPage.jsx';
-import SchemeDetailPage from './pages/SchemeDetailPage.jsx';
-import AdminDashboard   from './pages/AdminDashboard.jsx';
-import AIHub            from './pages/AIHub.jsx';
+import LandingPage          from './pages/LandingPage.jsx';
+import LoginPage            from './pages/LoginPage.jsx';
+import RegisterPage         from './pages/RegisterPage.jsx';
+import DashboardHome        from './pages/DashboardHome.jsx';
+import ProfilePage          from './pages/ProfilePage.jsx';
+import EligibilityPage      from './pages/EligibilityPage.jsx';
+import ResultsPage          from './pages/ResultsPage.jsx';
+import SchemesPage          from './pages/SchemesPage.jsx';
+import SchemeDetailPage     from './pages/SchemeDetailPage.jsx';
+import SchemeComparisonPage from './pages/SchemeComparisonPage.jsx';
+import AdminDashboard       from './pages/AdminDashboard.jsx';
+import AIHub                from './pages/AIHub.jsx';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -66,8 +67,11 @@ function AppRoutes() {
         <ProtectedRoute>
           <DashboardLayout><SchemesPage /></DashboardLayout>
         </ProtectedRoute>
-      }/>
-      <Route path="/schemes/:id" element={
+      }/>      <Route path="/schemes/compare" element={
+        <ProtectedRoute>
+          <DashboardLayout><SchemeComparisonPage /></DashboardLayout>
+        </ProtectedRoute>
+      }/>      <Route path="/schemes/:id" element={
         <ProtectedRoute>
           <DashboardLayout><SchemeDetailPage /></DashboardLayout>
         </ProtectedRoute>
