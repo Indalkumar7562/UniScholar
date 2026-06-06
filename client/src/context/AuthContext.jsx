@@ -61,6 +61,16 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const googleLogin = async (credential) => {
+    const { data } = await authAPI.googleLogin({ credential });
+    localStorage.setItem('uss_token', data.token);
+    localStorage.setItem('uss_user', JSON.stringify(data.user));
+    setUser(data.user);
+    await fetchProfile();
+    toast.success(data.message || 'Logged in with Google!');
+    return data;
+  };
+
   const register = async (credentials) => {
     const { data } = await authAPI.register(credentials);
     localStorage.setItem('uss_token', data.token);
@@ -81,13 +91,20 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = (p) => setProfile(p);
 
+  const updateUser = (u) => {
+    localStorage.setItem('uss_user', JSON.stringify(u));
+    setUser(u);
+  };
+
   return (
     <AuthContext.Provider value={{
       user, profile, loading, darkMode, setDarkMode,
       language, setLanguage,
-      login, register, logout, fetchProfile, updateProfile,
+      login, register, googleLogin, logout, fetchProfile, updateProfile, updateUser,
       isAuthenticated: !!user,
     }}>
+
+
       {children}
     </AuthContext.Provider>
   );

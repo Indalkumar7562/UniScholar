@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { userAPI, aiAPI } from '../services/api';
+import { userAPI, aiAPI, documentAPI } from '../services/api';
 import { t } from '../utils/translate';
 import { SectionHeader, Avatar, ProgressBar, Spinner } from '../components/ui/index.jsx';
+
 import { 
   Save, User, BookOpen, IndianRupee, FileText, Upload, 
   Sparkles, CheckCircle2, ChevronRight, ChevronLeft, ShieldAlert 
@@ -31,11 +32,40 @@ const MOCK_FILES = {
 };
 
 export default function ProfilePage() {
-  const { user, profile, updateProfile, language, fetchProfile } = useAuth();
+  const { user, profile, updateProfile, updateUser, language, fetchProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('personal');
   const [saving, setSaving] = useState(false);
   const [ocrLoading, setOcrLoading] = useState({});
   const [ocrResults, setOcrResults] = useState({});
+
+  const handleAvatarUpload = async (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) return;
+
+    if (!selectedFile.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', selectedFile);
+
+    const toastId = toast.loading('Uploading profile picture...');
+    try {
+      const { data } = await userAPI.uploadAvatar(formData);
+      updateUser(data.user);
+      toast.success('Profile picture updated successfully!', { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to upload profile picture', { id: toastId });
+    }
+  };
+
 
   const [form, setForm] = useState({
     fullName: '',
@@ -62,6 +92,10 @@ export default function ProfilePage() {
       casteCertificate: '',
       domicile: '',
       marksheet: '',
+      marksheet10th: '',
+      marksheet12th: '',
+      marksheetCollege: '',
+      marksheetOther: '',
       disabilityCertificate: ''
     }
   });
@@ -93,6 +127,10 @@ export default function ProfilePage() {
           casteCertificate: profile.documentUploads?.casteCertificate || '',
           domicile: profile.documentUploads?.domicile || '',
           marksheet: profile.documentUploads?.marksheet || '',
+          marksheet10th: profile.documentUploads?.marksheet10th || '',
+          marksheet12th: profile.documentUploads?.marksheet12th || '',
+          marksheetCollege: profile.documentUploads?.marksheetCollege || '',
+          marksheetOther: profile.documentUploads?.marksheetOther || '',
           disabilityCertificate: profile.documentUploads?.disabilityCertificate || ''
         }
       });
@@ -119,7 +157,7 @@ export default function ProfilePage() {
     if (form.cgpaOrPercentage) score++;
     if (form.annualFamilyIncome !== '') score++;
     if (form.documentUploads?.incomeCertificate) score++;
-    if (form.documentUploads?.marksheet) score++;
+    if (form.documentUploads?.marksheet || form.documentUploads?.marksheet10th || form.documentUploads?.marksheet12th || form.documentUploads?.marksheetCollege || form.documentUploads?.marksheetOther) score++;
     return Math.round((score / totalFields) * 100);
   };
 
@@ -146,48 +184,74 @@ export default function ProfilePage() {
     }
   };
 
-  // Simulate OCR Scan verification
-  const triggerOCR = async (docType) => {
-    setOcrLoading(prev => ({ ...prev, [docType]: true }));
-    try {
-      const fileUrl = MOCK_FILES[docType];
-      const { data } = await aiAPI.verifyDocument(docType, fileUrl);
-      
-      setOcrResults(prev => ({ ...prev, [docType]: data }));
-      toast.success(`${docType} details extracted!`);
+  // Active Document Upload & OCR verification
+  const handleProfileFileChange = async (e, docType) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) return;
 
-      // Autofill fields based on document
+    setOcrLoading(prev => ({ ...prev, [docType]: true }));
+
+    let category = 'Other';
+    if (docType === 'aadhaar') category = 'Identity';
+    else if (docType === 'incomeCertificate') category = 'Income';
+    else if (['marksheet', 'marksheet10th', 'marksheet12th', 'marksheetCollege', 'marksheetOther'].includes(docType)) category = 'Academic';
+    else if (docType === 'domicile') category = 'Residence';
+    else if (docType === 'casteCertificate') category = 'Category Certificate';
+
+    let customName = `${category} Document`;
+    if (docType === 'marksheet10th') customName = '10th Marksheet';
+    else if (docType === 'marksheet12th') customName = '12th Marksheet';
+    else if (docType === 'marksheetCollege') customName = 'College Marksheet';
+    else if (docType === 'marksheetOther') customName = 'Other Academic Document';
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('category', category);
+    formData.append('customName', customName);
+
+    try {
+      // 1. Upload to Document Vault (saves file on backend and updates schema)
+      const { data: uploadData } = await documentAPI.upload(formData);
+      const filePath = uploadData.document.filePath;
+      toast.success(`${selectedFile.name} uploaded successfully!`);
+
+      // 2. Trigger OCR verification using file
+      const { data: ocrData } = await aiAPI.verifyDocument(docType, filePath);
+      setOcrResults(prev => ({ ...prev, [docType]: ocrData }));
+      toast.success(`${category} details verified & synchronized!`);
+
+      // 3. Auto-fill profile fields
       if (docType === 'incomeCertificate') {
-        updateField('annualFamilyIncome', data.extractedData.annualFamilyIncome);
-        setForm(p => ({
-          ...p,
-          documentUploads: { ...p.documentUploads, incomeCertificate: fileUrl }
-        }));
-      } else if (docType === 'marksheet') {
-        updateField('cgpaOrPercentage', data.extractedData.cgpaOrPercentage);
-        setForm(p => ({
-          ...p,
-          documentUploads: { ...p.documentUploads, marksheet: fileUrl }
-        }));
+        updateField('annualFamilyIncome', ocrData.extractedData.annualFamilyIncome);
+      } else if (['marksheet', 'marksheet10th', 'marksheet12th', 'marksheetCollege', 'marksheetOther'].includes(docType)) {
+        updateField('cgpaOrPercentage', ocrData.extractedData.cgpaOrPercentage);
+        if (ocrData.extractedData.educationLevel) {
+          updateField('educationLevel', ocrData.extractedData.educationLevel);
+        }
+        if (ocrData.extractedData.stream) {
+          updateField('stream', ocrData.extractedData.stream);
+        }
       } else if (docType === 'domicile') {
-        updateField('state', data.extractedData.state);
-        setForm(p => ({
-          ...p,
-          documentUploads: { ...p.documentUploads, domicile: fileUrl }
-        }));
-      } else {
-        // Just link file
-        setForm(p => ({
-          ...p,
-          documentUploads: { ...p.documentUploads, [docType]: fileUrl }
-        }));
+        updateField('state', ocrData.extractedData.state);
       }
+
+      // 4. Update the profile local state for document uploads
+      setForm(prev => ({
+        ...prev,
+        documentUploads: {
+          ...prev.documentUploads,
+          [docType]: filePath
+        }
+      }));
+
     } catch (err) {
-      toast.error('OCR Simulator processing error');
+      console.error(err);
+      toast.error(err.response?.data?.message || 'File upload or verification failed');
     } finally {
       setOcrLoading(prev => ({ ...prev, [docType]: false }));
     }
   };
+
 
   const TABS = [
     { id: 'personal', label: t('personalDetails', language), icon: User },
@@ -205,7 +269,21 @@ export default function ProfilePage() {
 
       {/* Progress Header Card */}
       <div className="card glass-card flex flex-col md:flex-row items-center gap-6 p-6">
-        <Avatar name={form.fullName || user?.name || '?'} size="xl" />
+        <div className="relative group cursor-pointer flex-shrink-0">
+          <label className="cursor-pointer relative block rounded-full overflow-hidden w-16 h-16 shadow-md border-2 border-white dark:border-slate-800 hover:scale-105 active:scale-95 transition-transform">
+            <input 
+              type="file" 
+              className="hidden" 
+              accept="image/*" 
+              onChange={handleAvatarUpload} 
+            />
+            <Avatar name={form.fullName || user?.name || '?'} size="xl" src={user?.avatar} />
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <span className="text-[9px] text-white font-bold tracking-wider uppercase">Upload</span>
+            </div>
+          </label>
+        </div>
+
         <div className="flex-1 min-w-0 w-full text-center md:text-left">
           <h2 className="text-xl font-extrabold text-gray-900 dark:text-slate-100">{form.fullName || 'New Candidate'}</h2>
           <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
@@ -412,147 +490,268 @@ export default function ProfilePage() {
         {/* Tab 4: Documents Upload & OCR */}
         {activeTab === 'documents' && (
           <div className="space-y-6 animate-fade-in text-xs">
-            <p className="text-gray-400 mb-4">
-              Simulate uploading documents to verify credentials using OCR. Each verification runs OCR scanning and updates form parameters automatically.
+            <p className="text-gray-400 mb-4 font-semibold">
+              Upload your actual credentials to verify your profile fields automatically using AI OCR extraction. Uploading a document here also securely stores it in your Document Vault.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* Income Certificate Slot */}
-              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700 rounded-3xl space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-gray-700 dark:text-slate-350">Income Certificate</span>
-                  {form.documentUploads?.incomeCertificate ? (
-                    <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full">✓ Verified</span>
-                  ) : (
-                    <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">Missing File</span>
-                  )}
+              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700/80 rounded-3xl space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-gray-700 dark:text-slate-350">Income Certificate</span>
+                    {form.documentUploads?.incomeCertificate ? (
+                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">✓ Verified</span>
+                    ) : (
+                      <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">Missing File</span>
+                    )}
+                  </div>
+
+                  <label className="py-8 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer relative hover:bg-gray-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                    <input
+                      type="file"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      onChange={(e) => handleProfileFileChange(e, 'incomeCertificate')}
+                      disabled={ocrLoading['incomeCertificate']}
+                      accept=".pdf,.png,.jpg,.jpeg"
+                    />
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
+                      {form.documentUploads?.incomeCertificate 
+                        ? form.documentUploads.incomeCertificate.split('/').pop() 
+                        : 'Choose Income Certificate file'}
+                    </span>
+                  </label>
                 </div>
 
-                <div className="py-6 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800">
-                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                  <span className="font-bold text-[10px] text-gray-400 font-mono">income_certificate_priya.pdf</span>
-                </div>
-
-                <button 
-                  type="button"
-                  onClick={() => triggerOCR('incomeCertificate')}
-                  disabled={ocrLoading['incomeCertificate']}
-                  className="btn btn-ghost w-full py-2 flex items-center justify-center gap-1.5"
-                >
-                  {ocrLoading['incomeCertificate'] ? (
-                    <Spinner />
-                  ) : (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      {t('ocrVerify', language)}
-                    </>
-                  )}
-                </button>
+                {ocrLoading['incomeCertificate'] && (
+                  <div className="flex items-center justify-center gap-2 text-[10px] text-primary-600 font-bold animate-pulse pt-2">
+                    <Spinner className="w-3.5 h-3.5" /> Uploading & OCR scanning...
+                  </div>
+                )}
               </div>
 
-              {/* Marksheet Slot */}
-              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700 rounded-3xl space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-gray-700 dark:text-slate-350">Academic Marksheet</span>
-                  {form.documentUploads?.marksheet ? (
-                    <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full">✓ Verified</span>
-                  ) : (
-                    <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">Missing File</span>
-                  )}
+              {/* 10th Marksheet Slot */}
+              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700/80 rounded-3xl space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-gray-700 dark:text-slate-350">10th Marksheet</span>
+                    {form.documentUploads?.marksheet10th ? (
+                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">✓ Verified</span>
+                    ) : (
+                      <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">Missing File</span>
+                    )}
+                  </div>
+
+                  <label className="py-8 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer relative hover:bg-gray-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                    <input
+                      type="file"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      onChange={(e) => handleProfileFileChange(e, 'marksheet10th')}
+                      disabled={ocrLoading['marksheet10th']}
+                      accept=".pdf,.png,.jpg,.jpeg"
+                    />
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
+                      {form.documentUploads?.marksheet10th 
+                        ? form.documentUploads.marksheet10th.split('/').pop() 
+                        : 'Choose 10th Marksheet file'}
+                    </span>
+                  </label>
                 </div>
 
-                <div className="py-6 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800">
-                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                  <span className="font-bold text-[10px] text-gray-400 font-mono">marksheet_priya.pdf</span>
+                {ocrLoading['marksheet10th'] && (
+                  <div className="flex items-center justify-center gap-2 text-[10px] text-primary-600 font-bold animate-pulse pt-2">
+                    <Spinner className="w-3.5 h-3.5" /> Uploading & OCR scanning...
+                  </div>
+                )}
+              </div>
+
+              {/* 12th Marksheet Slot */}
+              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700/80 rounded-3xl space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-gray-700 dark:text-slate-350">12th Marksheet</span>
+                    {form.documentUploads?.marksheet12th ? (
+                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">✓ Verified</span>
+                    ) : (
+                      <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">Missing File</span>
+                    )}
+                  </div>
+
+                  <label className="py-8 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer relative hover:bg-gray-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                    <input
+                      type="file"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      onChange={(e) => handleProfileFileChange(e, 'marksheet12th')}
+                      disabled={ocrLoading['marksheet12th']}
+                      accept=".pdf,.png,.jpg,.jpeg"
+                    />
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
+                      {form.documentUploads?.marksheet12th 
+                        ? form.documentUploads.marksheet12th.split('/').pop() 
+                        : 'Choose 12th Marksheet file'}
+                    </span>
+                  </label>
                 </div>
 
-                <button 
-                  type="button"
-                  onClick={() => triggerOCR('marksheet')}
-                  disabled={ocrLoading['marksheet']}
-                  className="btn btn-ghost w-full py-2 flex items-center justify-center gap-1.5"
-                >
-                  {ocrLoading['marksheet'] ? (
-                    <Spinner />
-                  ) : (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      {t('ocrVerify', language)}
-                    </>
-                  )}
-                </button>
+                {ocrLoading['marksheet12th'] && (
+                  <div className="flex items-center justify-center gap-2 text-[10px] text-primary-600 font-bold animate-pulse pt-2">
+                    <Spinner className="w-3.5 h-3.5" /> Uploading & OCR scanning...
+                  </div>
+                )}
+              </div>
+
+              {/* College Marksheet Slot */}
+              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700/80 rounded-3xl space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-gray-700 dark:text-slate-350">College Marksheet</span>
+                    {form.documentUploads?.marksheetCollege ? (
+                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">✓ Verified</span>
+                    ) : (
+                      <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">Missing File</span>
+                    )}
+                  </div>
+
+                  <label className="py-8 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer relative hover:bg-gray-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                    <input
+                      type="file"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      onChange={(e) => handleProfileFileChange(e, 'marksheetCollege')}
+                      disabled={ocrLoading['marksheetCollege']}
+                      accept=".pdf,.png,.jpg,.jpeg"
+                    />
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
+                      {form.documentUploads?.marksheetCollege 
+                        ? form.documentUploads.marksheetCollege.split('/').pop() 
+                        : 'Choose College Marksheet file'}
+                    </span>
+                  </label>
+                </div>
+
+                {ocrLoading['marksheetCollege'] && (
+                  <div className="flex items-center justify-center gap-2 text-[10px] text-primary-600 font-bold animate-pulse pt-2">
+                    <Spinner className="w-3.5 h-3.5" /> Uploading & OCR scanning...
+                  </div>
+                )}
+              </div>
+
+              {/* Other Academic Document Slot */}
+              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700/80 rounded-3xl space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-gray-700 dark:text-slate-350">Other Academic Document</span>
+                    {form.documentUploads?.marksheetOther ? (
+                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">✓ Verified</span>
+                    ) : (
+                      <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">Missing File</span>
+                    )}
+                  </div>
+
+                  <label className="py-8 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer relative hover:bg-gray-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                    <input
+                      type="file"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      onChange={(e) => handleProfileFileChange(e, 'marksheetOther')}
+                      disabled={ocrLoading['marksheetOther']}
+                      accept=".pdf,.png,.jpg,.jpeg"
+                    />
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
+                      {form.documentUploads?.marksheetOther 
+                        ? form.documentUploads.marksheetOther.split('/').pop() 
+                        : 'Choose Other Academic Document file'}
+                    </span>
+                  </label>
+                </div>
+
+                {ocrLoading['marksheetOther'] && (
+                  <div className="flex items-center justify-center gap-2 text-[10px] text-primary-600 font-bold animate-pulse pt-2">
+                    <Spinner className="w-3.5 h-3.5" /> Uploading & OCR scanning...
+                  </div>
+                )}
               </div>
 
               {/* Domicile Slot */}
-              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700 rounded-3xl space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-gray-700 dark:text-slate-350">Domicile / Residency Certificate</span>
-                  {form.documentUploads?.domicile ? (
-                    <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full">✓ Verified</span>
-                  ) : (
-                    <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">Missing File</span>
-                  )}
+              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700/80 rounded-3xl space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-gray-700 dark:text-slate-350">Domicile / Residency Certificate</span>
+                    {form.documentUploads?.domicile ? (
+                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">✓ Verified</span>
+                    ) : (
+                      <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">Missing File</span>
+                    )}
+                  </div>
+
+                  <label className="py-8 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer relative hover:bg-gray-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                    <input
+                      type="file"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      onChange={(e) => handleProfileFileChange(e, 'domicile')}
+                      disabled={ocrLoading['domicile']}
+                      accept=".pdf,.png,.jpg,.jpeg"
+                    />
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
+                      {form.documentUploads?.domicile 
+                        ? form.documentUploads.domicile.split('/').pop() 
+                        : 'Choose Domicile Certificate file'}
+                    </span>
+                  </label>
                 </div>
 
-                <div className="py-6 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800">
-                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                  <span className="font-bold text-[10px] text-gray-400 font-mono">domicile_maharashtra.pdf</span>
-                </div>
-
-                <button 
-                  type="button"
-                  onClick={() => triggerOCR('domicile')}
-                  disabled={ocrLoading['domicile']}
-                  className="btn btn-ghost w-full py-2 flex items-center justify-center gap-1.5"
-                >
-                  {ocrLoading['domicile'] ? (
-                    <Spinner />
-                  ) : (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      {t('ocrVerify', language)}
-                    </>
-                  )}
-                </button>
+                {ocrLoading['domicile'] && (
+                  <div className="flex items-center justify-center gap-2 text-[10px] text-primary-600 font-bold animate-pulse pt-2">
+                    <Spinner className="w-3.5 h-3.5" /> Uploading & OCR scanning...
+                  </div>
+                )}
               </div>
 
               {/* Aadhaar Card Slot */}
-              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700 rounded-3xl space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-gray-700 dark:text-slate-350">Aadhaar Card</span>
-                  {form.documentUploads?.aadhaar ? (
-                    <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full">✓ Verified</span>
-                  ) : (
-                    <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">Missing File</span>
-                  )}
+              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700/80 rounded-3xl space-y-3 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-gray-700 dark:text-slate-350">Aadhaar Card</span>
+                    {form.documentUploads?.aadhaar ? (
+                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">✓ Verified</span>
+                    ) : (
+                      <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">Missing File</span>
+                    )}
+                  </div>
+
+                  <label className="py-8 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer relative hover:bg-gray-100/50 dark:hover:bg-slate-800/50 transition-colors">
+                    <input
+                      type="file"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      onChange={(e) => handleProfileFileChange(e, 'aadhaar')}
+                      disabled={ocrLoading['aadhaar']}
+                      accept=".pdf,.png,.jpg,.jpeg"
+                    />
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
+                      {form.documentUploads?.aadhaar 
+                        ? form.documentUploads.aadhaar.split('/').pop() 
+                        : 'Choose Aadhaar Card file'}
+                    </span>
+                  </label>
                 </div>
 
-                <div className="py-6 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800">
-                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                  <span className="font-bold text-[10px] text-gray-400 font-mono">aadhaar_priya.pdf</span>
-                </div>
-
-                <button 
-                  type="button"
-                  onClick={() => triggerOCR('aadhaar')}
-                  disabled={ocrLoading['aadhaar']}
-                  className="btn btn-ghost w-full py-2 flex items-center justify-center gap-1.5"
-                >
-                  {ocrLoading['aadhaar'] ? (
-                    <Spinner />
-                  ) : (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      {t('ocrVerify', language)}
-                    </>
-                  )}
-                </button>
+                {ocrLoading['aadhaar'] && (
+                  <div className="flex items-center justify-center gap-2 text-[10px] text-primary-600 font-bold animate-pulse pt-2">
+                    <Spinner className="w-3.5 h-3.5" /> Uploading & OCR scanning...
+                  </div>
+                )}
               </div>
 
             </div>
           </div>
         )}
+
 
         {/* Action Controls */}
         <div className="flex justify-between items-center border-t border-gray-100 dark:border-slate-700/80 pt-5 gap-4">

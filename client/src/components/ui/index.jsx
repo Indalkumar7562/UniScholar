@@ -32,15 +32,19 @@ export const SkeletonCard = () => (
 );
 
 // ─── Avatar ────────────────────────────────────────────────────────────────────
-export const Avatar = ({ name = '?', size = 'md', className = '' }) => {
+export const Avatar = ({ name = '?', size = 'md', src = '', className = '' }) => {
   const sz = { sm: 'w-7 h-7 text-xs', md: 'w-9 h-9 text-sm', lg: 'w-12 h-12 text-base', xl: 'w-16 h-16 text-xl' };
   const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   return (
-    <div className={`avatar ${sz[size]} font-bold text-white flex-shrink-0 ${className}`}>
-      {initials}
+    <div className={`avatar ${sz[size]} font-bold text-white flex-shrink-0 overflow-hidden flex items-center justify-center ${className}`}>
+      {src ? (
+        <img src={src} alt={name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+      ) : null}
+      {!src && initials}
     </div>
   );
 };
+
 
 // ─── Badge ─────────────────────────────────────────────────────────────────────
 export const Badge = ({ children, variant = 'primary', className = '' }) => (

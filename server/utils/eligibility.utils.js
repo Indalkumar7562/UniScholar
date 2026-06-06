@@ -177,8 +177,16 @@ const checkSchemeEligibility = (profile, scheme) => {
     requiredDocuments.forEach((doc) => {
       const field = mapDocToProfileField(doc);
       if (field) {
-        if (!profile.documentUploads || !profile.documentUploads[field]) {
-          missingDocuments.push(doc);
+        if (field === 'marksheet') {
+          const uploads = profile.documentUploads || {};
+          const hasMarksheet = !!(uploads.marksheet || uploads.marksheet10th || uploads.marksheet12th || uploads.marksheetCollege || uploads.marksheetOther);
+          if (!hasMarksheet) {
+            missingDocuments.push(doc);
+          }
+        } else {
+          if (!profile.documentUploads || !profile.documentUploads[field]) {
+            missingDocuments.push(doc);
+          }
         }
       } else {
         // Fallback check if it doesn't match standard keys (rare)

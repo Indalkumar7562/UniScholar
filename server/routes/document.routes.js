@@ -2,12 +2,12 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { getProfile, upsertProfile, toggleBookmark, getBookmarks, updateAvatar } = require('../controllers/user.controller');
 const { protect } = require('../middleware/auth.middleware');
+const { getDocuments, uploadDocument, deleteDocument } = require('../controllers/document.controller');
 
 const router = express.Router();
 
-// Configure avatar storage
+// Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = path.join(__dirname, '..', 'uploads');
@@ -18,22 +18,20 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
-router.use(protect); // All user routes are protected
+// Protect all routes
+router.use(protect);
 
-router.get('/profile', getProfile);
-router.put('/profile', upsertProfile);
-router.put('/avatar', upload.single('avatar'), updateAvatar);
-router.get('/bookmarks', getBookmarks);
-router.post('/bookmarks/:schemeId', toggleBookmark);
+router.get('/', getDocuments);
+router.post('/upload', upload.single('file'), uploadDocument);
+router.delete('/:id', deleteDocument);
 
 module.exports = router;
-

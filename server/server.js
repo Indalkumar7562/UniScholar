@@ -15,8 +15,17 @@ const eligibilityRoutes = require('./routes/eligibility.routes');
 const aiRoutes = require('./routes/ai.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const adminRoutes = require('./routes/admin.routes');
+const documentRoutes = require('./routes/document.routes');
+
 
 const app = express();
+
+// Ensure uploads folder exists
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 
 // ─── Audit Logger Middleware ─────────────────────────────────────────
 const auditLogger = (req, res, next) => {
@@ -84,6 +93,9 @@ app.use('/api/eligibility', eligibilityRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 // ─── Health Check ──────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

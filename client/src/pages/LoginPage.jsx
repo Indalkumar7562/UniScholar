@@ -111,7 +111,7 @@ export default function LoginPage() {
 
           <div className="flex items-center gap-3 my-5">
             <div className="flex-1 h-px bg-gray-100 dark:bg-slate-700" />
-            <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">or</span>
+            <span className="text-xs text-gray-400 dark:text-slate-500 font-medium font-bold">or</span>
             <div className="flex-1 h-px bg-gray-100 dark:bg-slate-700" />
           </div>
 

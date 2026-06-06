@@ -15,6 +15,16 @@ import SchemeDetailPage     from './pages/SchemeDetailPage.jsx';
 import SchemeComparisonPage from './pages/SchemeComparisonPage.jsx';
 import AdminDashboard       from './pages/AdminDashboard.jsx';
 import AIHub                from './pages/AIHub.jsx';
+import DocumentVault        from './pages/DocumentVault.jsx';
+
+import StudentServices      from './pages/StudentServices.jsx';
+import CareerGuidance       from './pages/CareerGuidance.jsx';
+import BecomePartner        from './pages/BecomePartner.jsx';
+import EducationLoan        from './pages/EducationLoan.jsx';
+import OnlineDegrees        from './pages/OnlineDegrees.jsx';
+import ArticlesPage         from './pages/ArticlesPage.jsx';
+import SupportProgramme     from './pages/SupportProgramme.jsx';
+import ResultsPublicPage    from './pages/ResultsPublicPage.jsx';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -41,6 +51,14 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login"    element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+      <Route path="/services" element={<StudentServices />} />
+      <Route path="/career" element={<CareerGuidance />} />
+      <Route path="/partner" element={<BecomePartner />} />
+      <Route path="/loan" element={<EducationLoan />} />
+      <Route path="/degrees" element={<OnlineDegrees />} />
+      <Route path="/articles" element={<ArticlesPage />} />
+      <Route path="/support-programme" element={<SupportProgramme />} />
+      <Route path="/results-public" element={<ResultsPublicPage />} />
 
       {/* Protected (dashboard) */}
       <Route path="/dashboard" element={
@@ -53,6 +71,12 @@ function AppRoutes() {
           <DashboardLayout><ProfilePage /></DashboardLayout>
         </ProtectedRoute>
       }/>
+      <Route path="/vault" element={
+        <ProtectedRoute>
+          <DashboardLayout><DocumentVault /></DashboardLayout>
+        </ProtectedRoute>
+      }/>
+
       <Route path="/eligibility" element={
         <ProtectedRoute>
           <DashboardLayout><EligibilityPage /></DashboardLayout>

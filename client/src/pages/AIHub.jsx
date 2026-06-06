@@ -22,7 +22,27 @@ const MOCK_DOCS = {
   marksheet: {
     name: 'marksheet_priya.pdf',
     url: 'https://uss-documents.s3.amazonaws.com/marksheet_priya.pdf',
-    description: '12th standard marksheets showing 88% aggregate grade.'
+    description: 'Generic marksheet showing 88% aggregate grade.'
+  },
+  marksheet10th: {
+    name: '10th_marksheet.pdf',
+    url: 'https://uss-documents.s3.amazonaws.com/10th_marksheet.pdf',
+    description: '10th standard marksheet showing 90% aggregate score.'
+  },
+  marksheet12th: {
+    name: '12th_marksheet.pdf',
+    url: 'https://uss-documents.s3.amazonaws.com/12th_marksheet.pdf',
+    description: '12th standard marksheet showing 88% aggregate score.'
+  },
+  marksheetCollege: {
+    name: 'college_marksheet.pdf',
+    url: 'https://uss-documents.s3.amazonaws.com/college_marksheet.pdf',
+    description: 'College graduation marksheet showing 85% aggregate score.'
+  },
+  marksheetOther: {
+    name: 'academic_other.pdf',
+    url: 'https://uss-documents.s3.amazonaws.com/academic_other.pdf',
+    description: 'Other academic certificate showing 80% aggregate score.'
   },
   domicile: {
     name: 'domicile_maharashtra.pdf',
@@ -82,7 +102,7 @@ export default function AIHub() {
 
     // Academic details
     if (profile.cgpaOrPercentage) score += 10; else suggestions.push('Enter GPA or academic marks percentage');
-    if (profile.documentUploads?.marksheet) score += 10; else suggestions.push('Upload recent academic marksheet');
+    if (profile.documentUploads?.marksheet || profile.documentUploads?.marksheet10th || profile.documentUploads?.marksheet12th || profile.documentUploads?.marksheetCollege || profile.documentUploads?.marksheetOther) score += 10; else suggestions.push('Upload recent academic marksheet');
 
     setCompletenessScore(score);
     setCompletenessSuggestions(suggestions);
@@ -119,11 +139,13 @@ export default function AIHub() {
           ...updatedProfile.documentUploads,
           incomeCertificate: MOCK_DOCS.incomeCertificate.url
         };
-      } else if (selectedDocType === 'marksheet') {
+      } else if (['marksheet', 'marksheet10th', 'marksheet12th', 'marksheetCollege', 'marksheetOther'].includes(selectedDocType)) {
         updatedProfile.cgpaOrPercentage = ocr.cgpaOrPercentage;
+        if (ocr.educationLevel) updatedProfile.educationLevel = ocr.educationLevel;
+        if (ocr.stream) updatedProfile.stream = ocr.stream;
         updatedProfile.documentUploads = {
           ...updatedProfile.documentUploads,
-          marksheet: MOCK_DOCS.marksheet.url
+          [selectedDocType]: MOCK_DOCS[selectedDocType]?.url || MOCK_DOCS.marksheet.url
         };
       } else if (selectedDocType === 'domicile') {
         updatedProfile.state = ocr.state;
@@ -181,7 +203,11 @@ export default function AIHub() {
                   }}
                 >
                   <option value="incomeCertificate">Income Certificate (Standard)</option>
-                  <option value="marksheet">Marksheet (Academic Report)</option>
+                  <option value="marksheet">Marksheet (Generic Academic Report)</option>
+                  <option value="marksheet10th">10th Marksheet</option>
+                  <option value="marksheet12th">12th Marksheet</option>
+                  <option value="marksheetCollege">College Marksheet</option>
+                  <option value="marksheetOther">Other Academic Document</option>
                   <option value="domicile">Domicile Certificate (Residency)</option>
                 </select>
               </div>
@@ -267,7 +293,7 @@ export default function AIHub() {
                       {selectedDocType === 'incomeCertificate' && (
                         <li>Annual Income: ₹{scanResult.extractedData?.annualFamilyIncome?.toLocaleString()}</li>
                       )}
-                      {selectedDocType === 'marksheet' && (
+                      {['marksheet', 'marksheet10th', 'marksheet12th', 'marksheetCollege', 'marksheetOther'].includes(selectedDocType) && (
                         <li>Aggregate GPA/Score: {scanResult.extractedData?.cgpaOrPercentage}%</li>
                       )}
                       {selectedDocType === 'domicile' && (
@@ -284,7 +310,7 @@ export default function AIHub() {
                       {selectedDocType === 'incomeCertificate' && (
                         <li>Annual Income: ₹{profile?.annualFamilyIncome?.toLocaleString() || 'Not Filled'}</li>
                       )}
-                      {selectedDocType === 'marksheet' && (
+                      {['marksheet', 'marksheet10th', 'marksheet12th', 'marksheetCollege', 'marksheetOther'].includes(selectedDocType) && (
                         <li>Aggregate GPA/Score: {profile?.cgpaOrPercentage ? `${profile.cgpaOrPercentage}%` : 'Not Filled'}</li>
                       )}
                       {selectedDocType === 'domicile' && (

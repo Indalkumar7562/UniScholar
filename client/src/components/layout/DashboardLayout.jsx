@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Avatar } from '../ui/index.jsx';
 import { notificationAPI } from '../../services/api';
@@ -8,10 +8,10 @@ import toast from 'react-hot-toast';
 import {
   LayoutDashboard, User, CheckCircle, BookOpen,
   Trophy, LogOut, Menu, X, Moon, Sun, GraduationCap,
-  Sparkles, Shield, Bell, Globe, Check
+  Sparkles, Shield, Bell, Globe, Check, Grid,
+  Compass, Laptop, FileText, DollarSign, Award, Heart
 } from 'lucide-react';
 import ChatbotWidget from '../chatbot/ChatbotWidget.jsx';
-
 
 const BASE_NAV_ITEMS = [
   { to: '/dashboard',   labelKey: 'dashboard',        icon: LayoutDashboard },
@@ -22,12 +22,24 @@ const BASE_NAV_ITEMS = [
   { to: '/ai-hub',      labelKey: 'aiHub',            icon: Sparkles },
 ];
 
+const SECONDARY_NAV_ITEMS = [
+  { to: '/services',          label: 'Student Services',       icon: Heart },
+  { to: '/career',            label: 'Career Guidance',        icon: Compass },
+  { to: '/loan',              label: 'Education Loans',        icon: DollarSign },
+  { to: '/degrees',           label: 'Online Degrees',         icon: Laptop },
+  { to: '/articles',          label: 'News & Articles',        icon: FileText },
+  { to: '/results-public',    label: 'Public Results',         icon: Award },
+  { to: '/support-programme', label: 'Support Programme',      icon: Sparkles },
+  { to: '/partner',           label: 'Become A Partner',       icon: Shield },
+];
+
 export default function DashboardLayout({ children }) {
   const { user, profile, logout, darkMode, setDarkMode, language, setLanguage } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [exploreOpen, setExploreOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => { logout(); navigate('/login'); };
@@ -88,6 +100,15 @@ export default function DashboardLayout({ children }) {
     }
   };
 
+  const exploreItems = [
+    { name: 'Browse Schemes', desc: 'Find active scholarship listings', path: '/schemes', icon: '🎓' },
+    { name: 'Eligibility Check', desc: 'Verify eligibility metrics', path: '/eligibility', icon: '🎯' },
+    { name: 'Document Vault', desc: 'Securely store documents', path: '/vault', icon: '📁' },
+    { name: 'AI Hub Simulator', desc: 'Test AI OCR scanning', path: '/ai-hub', icon: '✨' },
+    { name: 'Support Program', desc: 'Scholarship guidance 2026-27', path: '/support-programme', icon: '🎗️' },
+    { name: 'Student Services', desc: 'Mentoring & counselling', path: '/services', icon: '🤝' },
+  ];
+
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors duration-300">
       {/* Sidebar overlay (mobile) */}
@@ -108,7 +129,7 @@ export default function DashboardLayout({ children }) {
       `}>
         {/* Logo */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-700">
-          <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary-500/20">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
@@ -116,34 +137,56 @@ export default function DashboardLayout({ children }) {
               <div className="font-extrabold text-sm text-gray-900 dark:text-slate-100 leading-none">USS Intelligence</div>
               <div className="text-[10px] text-primary-500 dark:text-primary-400 font-bold mt-1 tracking-wider uppercase">Portal AI</div>
             </div>
-          </div>
+          </Link>
           <button className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700" onClick={() => setSidebarOpen(false)}>
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
 
-        {/* Nav Links */}
+        {/* Main Nav Links */}
         <nav className="flex-1 py-4">
           <div className="px-5 mb-2 text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
             {t('mainMenu', language)}
           </div>
-          {navItems.map(({ to, labelKey, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active bg-primary-50/70 dark:bg-primary-900/20 border-l-4 border-l-primary-500 rounded-l-none' : ''}`}
-            >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              <span className="flex-1 text-sm font-semibold">{t(labelKey, language)}</span>
-            </NavLink>
-          ))}
+          <div className="space-y-1">
+            {navItems.map(({ to, labelKey, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active bg-primary-50/70 dark:bg-primary-900/20 border-l-4 border-l-primary-500 rounded-l-none' : ''}`}
+              >
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                <span className="flex-1 text-sm font-semibold">{t(labelKey, language)}</span>
+              </NavLink>
+            ))}
+          </div>
+
+          {/* Secondary Nav Links (Services & Resources) */}
+          <div className="mt-6">
+            <div className="px-5 mb-2 text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
+              Services & Resources
+            </div>
+            <div className="space-y-1">
+              {SECONDARY_NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={() => setSidebarOpen(false)}
+                  className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active bg-primary-50/70 dark:bg-primary-900/20 border-l-4 border-l-primary-500 rounded-l-none' : ''}`}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="flex-1 text-sm font-semibold">{label}</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
         </nav>
 
         {/* User footer */}
         <div className="p-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/40">
           <div className="flex items-center gap-3 mb-3 px-1">
-            <Avatar name={user?.name || 'U'} size="sm" />
+            <Avatar name={user?.name || 'U'} size="sm" src={user?.avatar} />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate">{user?.name}</div>
               <div className="text-[11px] text-gray-400 dark:text-slate-500 truncate">{user?.email}</div>
@@ -161,131 +204,212 @@ export default function DashboardLayout({ children }) {
       {/* ── Main content ────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="sticky top-0 z-30 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-b border-gray-100 dark:border-slate-700 px-4 lg:px-6 h-16 flex items-center gap-3 shadow-sm">
-          <button
-            className="lg:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="w-5 h-5 text-gray-600 dark:text-slate-300" />
-          </button>
-
-          {/* User Profile Progress State Banner */}
-          <div className="flex-1">
-            {profile?.isComplete ? (
-              <span className="inline-flex items-center text-xs text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/30 px-3 py-1 rounded-full animate-pulse-slow">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
-                {t('profileComplete', language)}
-              </span>
-            ) : (
-              <span className="inline-flex items-center text-xs text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/30 px-3 py-1 rounded-full cursor-pointer hover:underline" onClick={() => navigate('/profile')}>
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-ping"></span>
-                {t('profileIncomplete', language)}
-              </span>
-            )}
-          </div>
-
-          {/* ── Multilingual Translation Dropdown ───────────────── */}
-          <div className="relative">
+        <header className="sticky top-0 z-30 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-b border-gray-100 dark:border-slate-700 px-4 lg:px-6 h-16 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            {/* Mobile menu toggle */}
             <button
-              onClick={() => { setLangOpen(!langOpen); setNotifOpen(false); }}
-              className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5 text-gray-600 dark:text-slate-300"
-              title="Change Language"
+              className="lg:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors shrink-0"
+              onClick={() => setSidebarOpen(true)}
             >
-              <Globe className="w-4 h-4" />
-              <span className="text-xs font-semibold uppercase">{language}</span>
+              <Menu className="w-5 h-5 text-gray-600 dark:text-slate-300" />
             </button>
-            {langOpen && (
-              <div className="absolute right-0 mt-2 w-40 rounded-xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-xl py-1.5 animate-slide-up">
-                {[
-                  { code: 'en', label: 'English' },
-                  { code: 'hi', label: 'हिन्दी' },
-                  { code: 'gu', label: 'ગુજરાતી' }
-                ].map(lang => (
-                  <button
-                    key={lang.code}
-                    onClick={() => { setLanguage(lang.code); setLangOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-xs font-medium text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 flex items-center justify-between"
-                  >
-                    <span>{lang.label}</span>
-                    {language === lang.code && <Check className="w-3.5 h-3.5 text-primary-600" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
 
-          {/* ── In-App Alerts Notification Center Dropdown ───────── */}
-          <div className="relative">
-            <button
-              onClick={() => { setNotifOpen(!notifOpen); setLangOpen(false); }}
-              className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors relative text-gray-600 dark:text-slate-300"
-              title={t('notifications', language)}
-            >
-              <Bell className="w-4 h-4" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 rounded-full text-[9px] text-white flex items-center justify-center font-bold">
-                  {unreadCount}
+            {/* Mobile Brand Logo */}
+            <Link to="/" className="lg:hidden flex items-center gap-2 shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary-600 to-violet-600 flex items-center justify-center">
+                <GraduationCap className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-extrabold text-xs text-gray-900 dark:text-white">UniScholar</span>
+            </Link>
+
+            {/* Explore dropdown */}
+            <div className="relative shrink-0 hidden md:block">
+              <button
+                onClick={() => { setExploreOpen(!exploreOpen); setLangOpen(false); setNotifOpen(false); }}
+                className={`text-xs font-bold flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all ${
+                  exploreOpen
+                    ? 'bg-primary-50 border-primary-300 text-primary-600 dark:bg-primary-950/30 dark:border-primary-900'
+                    : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                <Grid className="w-3.5 h-3.5" />
+                Explore
+              </button>
+              {exploreOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setExploreOpen(false)} />
+                  <div className="absolute left-0 mt-2 w-80 bg-white dark:bg-slate-800 border border-gray-150 dark:border-slate-700 shadow-2xl rounded-2xl p-4 grid grid-cols-1 gap-2 z-50 animate-slide-up">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 px-1">Quick Links</div>
+                    {exploreItems.map((item) => (
+                      <Link
+                        key={item.name}
+                        to={item.path}
+                        onClick={() => setExploreOpen(false)}
+                        className="flex items-start gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700/60 transition-colors group"
+                      >
+                        <div className="text-xl bg-gray-50 dark:bg-slate-900 w-9 h-9 rounded-lg flex items-center justify-center shrink-0">
+                          {item.icon}
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-gray-800 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400">
+                            {item.name}
+                          </div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">{item.desc}</div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Buddy4Study style Top Links - visible on XL screen only */}
+            <div className="hidden xl:flex items-center gap-1.5 ml-4">
+              {[
+                { name: 'Scholarships', path: '/schemes' },
+                { name: 'Student Services', path: '/services' },
+                { name: 'Education Loans', path: '/loan' },
+                { name: 'Online Degrees', path: '/degrees' },
+              ].map((link) => (
+                <Link
+                  key={link.name}
+                  to={link.path}
+                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-gray-650 dark:text-slate-350 hover:text-primary-600 dark:hover:text-primary-450 hover:bg-gray-50 dark:hover:bg-slate-700/40 transition-colors whitespace-nowrap"
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </div>
+
+            {/* Profile Completeness Alert / Progress */}
+            <div className="hidden md:block ml-3">
+              {profile?.isComplete ? (
+                <span className="inline-flex items-center text-[11px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/30 px-3 py-1 rounded-full animate-pulse-slow">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+                  {t('profileComplete', language)}
+                </span>
+              ) : (
+                <span className="inline-flex items-center text-[11px] text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/30 px-3 py-1 rounded-full cursor-pointer hover:underline" onClick={() => navigate('/profile')}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-ping"></span>
+                  {t('profileIncomplete', language)}
                 </span>
               )}
-            </button>
-
-            {notifOpen && (
-              <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-2xl overflow-hidden z-50 animate-slide-up">
-                <div className="px-4 py-3 bg-gray-50 dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
-                  <span className="text-sm font-bold text-gray-900 dark:text-slate-100">{t('notifications', language)}</span>
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={handleMarkAllRead}
-                      className="text-[11px] font-bold text-primary-600 dark:text-primary-400 hover:underline"
-                    >
-                      {t('markAllRead', language)}
-                    </button>
-                  )}
-                </div>
-
-                <div className="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-700 scrollbar-hide">
-                  {notifications.length === 0 ? (
-                    <div className="px-4 py-6 text-center text-xs text-gray-400 dark:text-slate-500">
-                      {t('noNotifications', language)}
-                    </div>
-                  ) : (
-                    notifications.map(notif => (
-                      <div
-                        key={notif._id}
-                        onClick={() => handleMarkRead(notif._id)}
-                        className={`px-4 py-3 cursor-pointer transition-colors ${notif.read ? 'bg-white hover:bg-gray-50/50 dark:bg-slate-800 dark:hover:bg-slate-700/20' : 'bg-blue-50/30 hover:bg-blue-50/50 dark:bg-blue-950/10 dark:hover:bg-blue-950/20'}`}
-                      >
-                        <div className="flex justify-between items-start gap-2">
-                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${getAlertStyle(notif.type)}`}>
-                            {notif.type}
-                          </span>
-                          <span className="text-[10px] text-gray-400">
-                            {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        <div className="text-xs font-bold text-gray-800 dark:text-slate-100 mt-1">{notif.title}</div>
-                        <div className="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5 leading-relaxed">{notif.message}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
+            </div>
           </div>
 
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-gray-600 dark:text-slate-300"
-            title="Toggle dark mode"
-          >
-            {darkMode
-              ? <Sun className="w-4 h-4 text-amber-400" />
-              : <Moon className="w-4 h-4" />
-            }
-          </button>
+          {/* Right Action buttons */}
+          <div className="flex items-center gap-2 lg:gap-3 shrink-0">
+            
+            {/* Buddy4Study style yellow highlighted Programme Badge Button */}
+            <Link
+              to="/support-programme"
+              className="bg-amber-400 hover:bg-amber-500 text-slate-950 text-[10px] font-black tracking-wider uppercase px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-md shadow-amber-400/10 transition-all hover:scale-105 active:scale-95 duration-200 border-l-4 border-amber-600 hidden sm:flex"
+            >
+              <span>SUPPORT PROGRAMME</span>
+            </Link>
 
-          <div className="border-l border-gray-100 dark:border-slate-700 h-6 mx-1"></div>
-          <Avatar name={user?.name || 'U'} size="sm" />
+            {/* Multilingual Translation Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => { setLangOpen(!langOpen); setNotifOpen(false); setExploreOpen(false); }}
+                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-1 text-gray-600 dark:text-slate-350"
+                title="Change Language"
+              >
+                <Globe className="w-4 h-4" />
+                <span className="text-[11px] font-bold uppercase">{language}</span>
+              </button>
+              {langOpen && (
+                <div className="absolute right-0 mt-2 w-40 rounded-xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-xl py-1.5 z-50 animate-slide-up">
+                  {[
+                    { code: 'en', label: 'English' },
+                    { code: 'hi', label: 'हिन्दी' },
+                    { code: 'gu', label: 'ગુજરાતી' }
+                  ].map(lang => (
+                    <button
+                      key={lang.code}
+                      onClick={() => { setLanguage(lang.code); setLangOpen(false); }}
+                      className="w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 flex items-center justify-between"
+                    >
+                      <span>{lang.label}</span>
+                      {language === lang.code && <Check className="w-3.5 h-3.5 text-primary-600" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Notifications Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => { setNotifOpen(!notifOpen); setLangOpen(false); setExploreOpen(false); }}
+                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors relative text-gray-600 dark:text-slate-350"
+                title={t('notifications', language)}
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-red-500 rounded-full text-[8px] text-white flex items-center justify-center font-bold">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-2xl overflow-hidden z-50 animate-slide-up">
+                  <div className="px-4 py-3 bg-gray-50 dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-900 dark:text-slate-100">{t('notifications', language)}</span>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="text-[10px] font-bold text-primary-600 dark:text-primary-400 hover:underline"
+                      >
+                        {t('markAllRead', language)}
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-700 scrollbar-hide">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-xs text-gray-400 dark:text-slate-500">
+                        {t('noNotifications', language)}
+                      </div>
+                    ) : (
+                      notifications.map(notif => (
+                        <div
+                          key={notif._id}
+                          onClick={() => handleMarkRead(notif._id)}
+                          className={`px-4 py-3 cursor-pointer transition-colors ${notif.read ? 'bg-white hover:bg-gray-50/50 dark:bg-slate-800 dark:hover:bg-slate-700/20' : 'bg-blue-50/30 hover:bg-blue-50/50 dark:bg-blue-950/10 dark:hover:bg-blue-950/20'}`}
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${getAlertStyle(notif.type)}`}>
+                              {notif.type}
+                            </span>
+                            <span className="text-[9px] text-gray-400">
+                              {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <div className="text-xs font-bold text-gray-800 dark:text-slate-100 mt-1">{notif.title}</div>
+                          <div className="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5 leading-relaxed">{notif.message}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Dark mode Toggle */}
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-gray-600 dark:text-slate-350"
+              title="Toggle dark mode"
+            >
+              {darkMode
+                ? <Sun className="w-4 h-4 text-amber-400" />
+                : <Moon className="w-4 h-4" />
+              }
+            </button>
+
+            <div className="border-l border-gray-150 dark:border-slate-700 h-6 mx-0.5"></div>
+            <Avatar name={user?.name || 'U'} size="sm" src={user?.avatar} />
+          </div>
         </header>
 
         {/* Page content */}
@@ -297,4 +421,3 @@ export default function DashboardLayout({ children }) {
     </div>
   );
 }
-

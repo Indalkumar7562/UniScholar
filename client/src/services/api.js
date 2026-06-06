@@ -32,17 +32,34 @@ api.interceptors.response.use(
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login:    (data) => api.post('/auth/login', data),
+  googleLogin: (data) => api.post('/auth/google', data),
   getMe:    ()     => api.get('/auth/me'),
   logout:   ()     => api.post('/auth/logout'),
+  getConfig: ()    => api.get('/auth/config'),
 };
+
+
+// ─── Documents ───────────────────────────────────────────────────────────────
+export const documentAPI = {
+  upload: (formData) => api.post('/documents/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  getAll: () => api.get('/documents'),
+  delete: (id) => api.delete(`/documents/${id}`),
+};
+
 
 // ─── User / Profile ──────────────────────────────────────────────────────────
 export const userAPI = {
   getProfile:      ()         => api.get('/users/profile'),
   saveProfile:     (data)     => api.put('/users/profile', data),
+  uploadAvatar:    (formData) => api.put('/users/avatar', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   getBookmarks:    ()         => api.get('/users/bookmarks'),
   toggleBookmark:  (schemeId) => api.post(`/users/bookmarks/${schemeId}`),
 };
+
 
 // ─── Schemes ─────────────────────────────────────────────────────────────────
 export const schemeAPI = {

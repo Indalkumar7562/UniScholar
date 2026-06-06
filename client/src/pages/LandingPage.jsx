@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle, Shield, Sparkles, GraduationCap, Users, MapPin, Star } from 'lucide-react';
+import PublicNavbar from '../components/layout/PublicNavbar';
 
 const FEATURES = [
   { icon: '🎯', title: 'Easy Eligibility Check',        desc: 'Enter your profile once and instantly discover every scheme you qualify for.', color: 'from-blue-500/10 to-blue-600/5', border: 'border-blue-100 dark:border-blue-900/30' },
@@ -26,24 +27,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       {/* ── Navbar ─────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-100 dark:border-slate-800">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-600 to-violet-600 flex items-center justify-center">
-              <GraduationCap className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-extrabold text-gray-900 dark:text-white text-base">
-              USS <span className="text-primary-600 font-medium text-sm">Portal</span>
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button className="btn btn-ghost text-sm py-2 px-4 hidden sm:flex" onClick={() => navigate('/login')}>Sign In</button>
-            <button className="btn btn-primary text-sm py-2 px-4" onClick={() => navigate('/register')}>
-              Get Started <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </nav>
+      <PublicNavbar />
 
       {/* ── Hero ───────────────────────────────────────────── */}
       <section className="hero-gradient relative overflow-hidden py-24 lg:py-32 px-4">

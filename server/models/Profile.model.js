@@ -113,8 +113,13 @@ const profileSchema = new mongoose.Schema(
       casteCertificate: { type: String, default: '' },
       domicile: { type: String, default: '' },
       marksheet: { type: String, default: '' },
+      marksheet10th: { type: String, default: '' },
+      marksheet12th: { type: String, default: '' },
+      marksheetCollege: { type: String, default: '' },
+      marksheetOther: { type: String, default: '' },
       disabilityCertificate: { type: String, default: '' },
     },
+
 
     isComplete: {
       type: Boolean,

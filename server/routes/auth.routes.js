@@ -3,6 +3,7 @@ const { body } = require('express-validator');
 const { register, login, getMe, logout } = require('../controllers/auth.controller');
 const { protect } = require('../middleware/auth.middleware');
 
+
 const router = express.Router();
 
 router.post(
@@ -28,3 +29,5 @@ router.get('/me', protect, getMe);
 router.post('/logout', protect, logout);
 
 module.exports = router;
+
+

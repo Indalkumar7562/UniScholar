@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { schemeAPI, eligibilityAPI } from '../services/api';
+import { schemeAPI, eligibilityAPI, documentAPI } from '../services/api';
 import { StatCard, SectionHeader, SkeletonCard, ProgressBar } from '../components/ui/index.jsx';
 import SchemeCard from '../components/dashboard/SchemeCard.jsx';
-import { ArrowRight, Zap } from 'lucide-react';
+import { ArrowRight, Zap, FolderOpen, ShieldCheck } from 'lucide-react';
 
 export default function DashboardHome() {
   const { user, profile } = useAuth();
@@ -12,16 +12,19 @@ export default function DashboardHome() {
   const [schemes, setSchemes]   = useState([]);
   const [results, setResults]   = useState(null);
   const [loading, setLoading]   = useState(true);
+  const [docCount, setDocCount] = useState(0);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [{ data: sd }, { data: rd }] = await Promise.all([
+        const [{ data: sd }, { data: rd }, { data: dd }] = await Promise.all([
           schemeAPI.getAll({ limit: 3 }),
           eligibilityAPI.getResults(),
+          documentAPI.getAll(),
         ]);
         setSchemes(sd.schemes || []);
         setResults(rd.data);
+        setDocCount(dd.documents?.length || 0);
       } catch {/* ignore */} finally {
         setLoading(false);
       }
@@ -29,10 +32,11 @@ export default function DashboardHome() {
     load();
   }, []);
 
-  const eligible    = results?.totalEligible ?? 0;
-  const total       = results?.totalChecked ?? 0;
-  const notEligible = total - eligible;
-  const matchPct    = total ? Math.round((eligible / total) * 100) : 0;
+
+  const eligible    = results ? (results.totalEligible ?? 0) : null;
+  const total       = results ? (results.totalChecked ?? 0) : null;
+  const notEligible = results ? (total - eligible) : null;
+  const matchPct    = results && total ? Math.round((eligible / total) * 100) : 0;
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -48,23 +52,25 @@ export default function DashboardHome() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon="📚" label="Total Schemes"   value={loading ? '…' : total || '—'}       accentColor="border-primary-500" bgColor="bg-primary-50 dark:bg-primary-900/20" />
-        <StatCard icon="✅" label="Eligible"         value={loading ? '…' : eligible || '—'}    accentColor="border-emerald-500" bgColor="bg-emerald-50 dark:bg-emerald-900/20" />
-        <StatCard icon="❌" label="Not Eligible"     value={loading ? '…' : notEligible || '—'} accentColor="border-red-400"     bgColor="bg-red-50 dark:bg-red-900/20" />
-        <StatCard icon="🎯" label="Match Rate"       value={loading ? '…' : total ? `${matchPct}%` : '—'} accentColor="border-violet-500" bgColor="bg-violet-50 dark:bg-violet-900/20" />
+        <StatCard icon="📚" label="Total Schemes"   value={loading ? '…' : (total !== null ? total : '—')}       accentColor="border-primary-500" bgColor="bg-primary-50 dark:bg-primary-900/20" />
+        <StatCard icon="✅" label="Eligible"         value={loading ? '…' : (eligible !== null ? eligible : '—')}    accentColor="border-emerald-500" bgColor="bg-emerald-50 dark:bg-emerald-900/20" />
+        <StatCard icon="❌" label="Not Eligible"     value={loading ? '…' : (notEligible !== null ? notEligible : '—')} accentColor="border-red-400"     bgColor="bg-red-50 dark:bg-red-900/20" />
+        <StatCard icon="🎯" label="Match Rate"       value={loading ? '…' : (results && total ? `${matchPct}%` : '—')} accentColor="border-violet-500" bgColor="bg-violet-50 dark:bg-violet-900/20" />
       </div>
 
       {/* CTA cards */}
-      <div className="grid sm:grid-cols-2 gap-5">
+      <div className="grid md:grid-cols-3 gap-5">
         {/* Eligibility CTA */}
         <div
           onClick={() => navigate('/eligibility')}
-          className="card cursor-pointer bg-gradient-to-br from-primary-900 to-violet-900 border-0 hover:-translate-y-1 hover:shadow-card-hover transition-all duration-200 group"
+          className="card cursor-pointer bg-gradient-to-br from-primary-900 to-violet-900 border-0 hover:-translate-y-1 hover:shadow-card-hover transition-all duration-200 group flex flex-col justify-between"
         >
-          <div className="text-3xl mb-3">🔍</div>
-          <h3 className="text-white font-bold text-lg mb-1">Check Eligibility</h3>
-          <p className="text-blue-200/70 text-sm mb-4 leading-relaxed">Get personalized scholarship matches based on your profile in seconds.</p>
-          <span className="text-blue-300 text-sm font-semibold flex items-center gap-1 group-hover:gap-2 transition-all">
+          <div>
+            <div className="text-3xl mb-3">🔍</div>
+            <h3 className="text-white font-bold text-lg mb-1">Check Eligibility</h3>
+            <p className="text-blue-200/70 text-sm mb-4 leading-relaxed">Get personalized scholarship matches based on your profile in seconds.</p>
+          </div>
+          <span className="text-blue-300 text-sm font-semibold flex items-center gap-1 group-hover:gap-2 transition-all mt-auto">
             Start Now <ArrowRight className="w-4 h-4" />
           </span>
         </div>
@@ -72,21 +78,58 @@ export default function DashboardHome() {
         {/* Profile CTA */}
         <div
           onClick={() => navigate('/profile')}
-          className="card cursor-pointer hover:-translate-y-1 hover:shadow-card-hover transition-all duration-200 group"
+          className="card cursor-pointer hover:-translate-y-1 hover:shadow-card-hover transition-all duration-200 group flex flex-col justify-between"
         >
-          <div className="text-3xl mb-3">👤</div>
-          <h3 className="font-bold text-lg text-gray-900 dark:text-slate-100 mb-1">Complete Your Profile</h3>
-          <p className="text-gray-500 dark:text-slate-400 text-sm mb-4 leading-relaxed">
-            {profile?.isComplete
-              ? 'Your profile is complete! Update it any time.'
-              : 'Fill in your details to get accurate recommendations.'}
-          </p>
-          <ProgressBar value={profile?.isComplete ? 100 : 55} color={profile?.isComplete ? 'success' : 'primary'} className="mb-2" />
-          <span className="text-xs text-gray-400 dark:text-slate-500">
-            {profile?.isComplete ? '100% complete' : '55% complete — finish now'}
-          </span>
+          <div>
+            <div className="text-3xl mb-3">👤</div>
+            <h3 className="font-bold text-lg text-gray-900 dark:text-slate-100 mb-1">Complete Your Profile</h3>
+            <p className="text-gray-500 dark:text-slate-400 text-sm mb-4 leading-relaxed">
+              {profile?.isComplete
+                ? 'Your profile is complete! Update it any time.'
+                : 'Fill in your details to get accurate recommendations.'}
+            </p>
+          </div>
+          <div>
+            <ProgressBar value={profile?.isComplete ? 100 : 55} color={profile?.isComplete ? 'success' : 'primary'} className="mb-2" />
+            <span className="text-xs text-gray-400 dark:text-slate-500">
+              {profile?.isComplete ? '100% complete' : '55% complete — finish now'}
+            </span>
+          </div>
         </div>
+
+        {/* Document Vault CTA */}
+        {(() => {
+          let coreCount = 0;
+          if (profile?.documentUploads) {
+            const { aadhaar, incomeCertificate, marksheet, marksheet10th, marksheet12th, marksheetCollege, marksheetOther, domicile } = profile.documentUploads;
+            if (aadhaar) coreCount++;
+            if (incomeCertificate) coreCount++;
+            if (marksheet || marksheet10th || marksheet12th || marksheetCollege || marksheetOther) coreCount++;
+            if (domicile) coreCount++;
+          }
+          return (
+            <div
+              onClick={() => navigate('/vault')}
+              className="card cursor-pointer hover:-translate-y-1 hover:shadow-card-hover transition-all duration-200 group flex flex-col justify-between"
+            >
+              <div>
+                <div className="text-3xl mb-3">📁</div>
+                <h3 className="font-bold text-lg text-gray-900 dark:text-slate-100 mb-1">Document Vault</h3>
+                <p className="text-gray-500 dark:text-slate-400 text-sm mb-4 leading-relaxed">
+                  Store and manage your verified credentials. Currently storing <strong>{docCount}</strong> documents.
+                </p>
+              </div>
+              <div>
+                <ProgressBar value={coreCount * 25} color={coreCount === 4 ? 'success' : 'primary'} className="mb-2" />
+                <span className="text-xs text-gray-400 dark:text-slate-500">
+                  {coreCount}/4 key documents verified
+                </span>
+              </div>
+            </div>
+          );
+        })()}
       </div>
+
 
       {/* Last results summary */}
       {results && (

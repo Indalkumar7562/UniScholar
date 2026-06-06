@@ -35,6 +35,11 @@ const dictionary = {
     nextStep: "Next Step",
     prevStep: "Previous Step",
     saveProfile: "Save Profile & Verify",
+    documentVault: "Document Vault",
+    noDocuments: "No documents uploaded yet. Upload your academic, income, or category certificates below to complete your profile verification.",
+    uploadDocument: "Upload Document",
+    selectCategory: "Select Category",
+    documentName: "Document Name",
   },
   hi: {
     dashboard: "डैशबोर्ड",
@@ -72,6 +77,11 @@ const dictionary = {
     nextStep: "अगला कदम",
     prevStep: "पिछला कदम",
     saveProfile: "प्रोफ़ाइल सहेजें और सत्यापित करें",
+    documentVault: "दस्तावेज़ तिजोरी",
+    noDocuments: "अभी तक कोई दस्तावेज़ अपलोड नहीं किया गया है। अपनी प्रोफ़ाइल सत्यापन पूरा करने के लिए नीचे अपने शैक्षणिक, आय या श्रेणी प्रमाण पत्र अपलोड करें।",
+    uploadDocument: "दस्तावेज़ अपलोड करें",
+    selectCategory: "श्रेणी चुनें",
+    documentName: "दस्तावेज़ का नाम",
   },
   gu: {
     dashboard: "ડેશબોર્ડ",
@@ -109,6 +119,11 @@ const dictionary = {
     nextStep: "આગળનું પગલું",
     prevStep: "પાછળનું પગલું",
     saveProfile: "પ્રોફાઇલ સાચવો અને ચકાસો",
+    documentVault: "દસ્તાવેજ તિજોરી",
+    noDocuments: "હજી સુધી કોઈ દસ્તાવેજો અપલોડ થયા નથી. તમારી પ્રોફાઇલ ચકાસણી પૂર્ણ કરવા માટે નીચે તમારા શૈક્ષણિક, આવક અથવા શ્રેણીના પ્રમાણપત્રો અપલોડ કરો.",
+    uploadDocument: "દસ્તાવેજ અપલોડ કરો",
+    selectCategory: "શ્રેણી પસંદ કરો",
+    documentName: "દસ્તાવેજ નામ",
   }
 };
 

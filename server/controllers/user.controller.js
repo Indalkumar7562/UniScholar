@@ -123,4 +123,32 @@ const getBookmarks = async (req, res) => {
   }
 };
 
-module.exports = { getProfile, upsertProfile, toggleBookmark, getBookmarks };
+// @desc    Update user profile avatar
+// @route   PUT /api/users/avatar
+// @access  Private
+const updateAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Please upload an image file' });
+    }
+
+    const avatarUrl = `/uploads/${req.file.filename}`;
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { avatar: avatarUrl },
+      { new: true }
+    ).populate('bookmarks');
+
+    res.json({
+      success: true,
+      message: 'Profile picture updated successfully',
+      user,
+    });
+  } catch (error) {
+    console.error('Error updating avatar:', error);
+    res.status(500).json({ success: false, message: 'Server error updating profile picture' });
+  }
+};
+
+module.exports = { getProfile, upsertProfile, toggleBookmark, getBookmarks, updateAvatar };
+

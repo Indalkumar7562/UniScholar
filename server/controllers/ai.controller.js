@@ -52,6 +52,7 @@ const simulateOCR = (docType, profileName) => {
         message: 'Domicile Certificate scanned successfully. State: Gujarat.'
       };
     case 'marksheet':
+    case 'marksheet12th':
       return {
         success: true,
         extractedData: {
@@ -60,7 +61,40 @@ const simulateOCR = (docType, profileName) => {
           educationLevel: '12th Pass',
           stream: 'Science'
         },
-        message: 'Marksheet parsed successfully. Extracted 88% in 12th Pass (Science).'
+        message: '12th Marksheet parsed successfully. Extracted 88% in 12th Pass (Science).'
+      };
+    case 'marksheet10th':
+      return {
+        success: true,
+        extractedData: {
+          fullName: profileName || 'Student Name',
+          cgpaOrPercentage: 90,
+          educationLevel: '10th Pass',
+          stream: 'Science'
+        },
+        message: '10th Marksheet parsed successfully. Extracted 90% in 10th Pass.'
+      };
+    case 'marksheetCollege':
+      return {
+        success: true,
+        extractedData: {
+          fullName: profileName || 'Student Name',
+          cgpaOrPercentage: 85,
+          educationLevel: 'Graduation',
+          stream: 'Engineering'
+        },
+        message: 'College Marksheet parsed successfully. Extracted 85% in Graduation (Engineering).'
+      };
+    case 'marksheetOther':
+      return {
+        success: true,
+        extractedData: {
+          fullName: profileName || 'Student Name',
+          cgpaOrPercentage: 80,
+          educationLevel: 'Post Graduation',
+          stream: 'Science'
+        },
+        message: 'Academic document parsed successfully. Extracted 80% score.'
       };
     case 'disabilityCertificate':
       return {
@@ -82,7 +116,7 @@ const simulateOCR = (docType, profileName) => {
 // @access  Private
 const verifyDocumentOCR = async (req, res) => {
   try {
-    const { docType } = req.body;
+    const docType = req.body.docType || req.body.documentType;
     const profile = await Profile.findOne({ user: req.user._id });
     if (!profile) {
       return res.status(404).json({ success: false, message: 'Profile not found' });
@@ -109,6 +143,20 @@ const verifyDocumentOCR = async (req, res) => {
           user: req.user._id,
           title: '⚠️ Profile Verification Alert',
           message: `Discrepancy detected in Income Certificate autofill (Form: ₹${profile.annualFamilyIncome.toLocaleString()} vs Certificate: ₹${extractedIncome.toLocaleString()}).`,
+          type: 'warning'
+        });
+      }
+    }
+    if (['marksheet', 'marksheet10th', 'marksheet12th', 'marksheetCollege', 'marksheetOther'].includes(docType)) {
+      const extractedPercentage = ocrResult.extractedData.cgpaOrPercentage;
+      if (profile.cgpaOrPercentage !== extractedPercentage) {
+        discrepancy = true;
+        discrepancyDetails = `Academic Mismatch: Profile shows ${profile.cgpaOrPercentage}% vs Marksheet shows ${extractedPercentage}%`;
+        
+        await Notification.create({
+          user: req.user._id,
+          title: '⚠️ Academic Verification Alert',
+          message: `Discrepancy detected in Marksheet verification (Profile: ${profile.cgpaOrPercentage}% vs Marksheet: ${extractedPercentage}%).`,
           type: 'warning'
         });
       }

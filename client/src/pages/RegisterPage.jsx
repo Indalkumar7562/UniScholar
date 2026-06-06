@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext';
 import { Spinner } from '../components/ui/index.jsx';
 import toast from 'react-hot-toast';
 
-// ✅ ✅ MOVE COMPONENT OUTSIDE (IMPORTANT FIX)
 const InputField = ({ label, type = 'text', icon: Icon, placeholder, value, onChange, error }) => (
   <div>
     <label className="label">{label}</label>
@@ -85,13 +84,11 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
-
       {/* Background */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-80 h-80 bg-primary-500/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md animate-fade-up">
-
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-600 to-violet-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-600/30">
@@ -108,7 +105,6 @@ export default function RegisterPage() {
         {/* Form */}
         <div className="card shadow-card-hover">
           <form onSubmit={handleSubmit} className="space-y-4">
-
             <InputField
               label="Full Name"
               icon={User}
@@ -191,7 +187,6 @@ export default function RegisterPage() {
             ← Back to Home
           </Link>
         </p>
-
       </div>
     </div>
   );
