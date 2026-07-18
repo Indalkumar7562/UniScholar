@@ -96,22 +96,23 @@ const getAdminAnalytics = async (req, res) => {
       });
     }
 
+    const allSchemes = await Scheme.find().sort({ createdAt: -1 });
+
     res.json({
       success: true,
-      data: {
-        kpis: {
-          totalStudents: totalUsers,
-          totalSchemes,
-          activeSchemes,
-          avgCompleteness: avgProfileCompleteness,
-          avgMatchScore
-        },
-        categoryDistribution: Object.entries(categoryStats).map(([name, value]) => ({ name, value })),
-        stateDistribution: Object.entries(stateStats).map(([name, value]) => ({ name, value })),
-        topRejectionReasons,
-        topSchemes,
-        fraudAlerts
-      }
+      metrics: {
+        totalUsers: totalUsers,
+        totalSchemes,
+        activeSchemes,
+        avgScore: avgMatchScore,
+        fraudAlertsCount: warnings.length || fraudAlerts.length
+      },
+      categoryDistribution: Object.entries(categoryStats).map(([name, value]) => ({ name, value })),
+      stateDistribution: Object.entries(stateStats).map(([name, value]) => ({ name, value })),
+      rejectionReasons: topRejectionReasons,
+      topSchemes,
+      fraudAlerts,
+      schemes: allSchemes
     });
   } catch (error) {
     console.error('Admin analytics error:', error);

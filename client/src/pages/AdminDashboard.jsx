@@ -509,6 +509,8 @@ export default function AdminDashboard() {
                     <option value="SC">SC</option>
                     <option value="ST">ST</option>
                     <option value="OBC">OBC</option>
+                    <option value="Minority">Minority</option>
+                    <option value="All">All</option>
                   </select>
                 </div>
                 <div>
