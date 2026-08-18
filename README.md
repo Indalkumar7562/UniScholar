@@ -6,7 +6,7 @@ A full-stack **MERN** application that helps students discover and check eligibi
 
 ## 🛠️ Tech Stack
 
-| Layer     | Technology                              |
+| Layer     |   Technology                              |
 |-----------|-----------------------------------------|
 | Frontend  | React 18, Vite, Tailwind CSS v3, React Router v6 |
 | Backend   | Node.js, Express.js                     |
