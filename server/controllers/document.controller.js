@@ -144,6 +144,8 @@ const viewDocument = async (req, res) => {
       return res.status(404).json({ success: false, message: 'File not found on server' });
     }
 
+    res.removeHeader('X-Frame-Options');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', document.mimeType || 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
     fs.createReadStream(absolutePath).pipe(res);

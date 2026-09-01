@@ -58,9 +58,11 @@ const auditLogger = (req, res, next) => {
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   crossOriginEmbedderPolicy: false,
+  frameguard: false, // Disables X-Frame-Options: SAMEORIGIN to allow cross-origin document iframe previews
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
+      frameAncestors: ["'self'", "https://unischolar.vercel.app", "https://*.vercel.app", "http://localhost:*", "*"],
       imgSrc: ["'self'", "data:", "blob:", "http:", "https:", "*"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https:"],
@@ -69,19 +71,26 @@ app.use(helmet({
     }
   }
 }));
+
 const allowedClientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 const localHostPattern = /^http:\/\/localhost(?::\d+)?$/;
+
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (origin === allowedClientUrl || localHostPattern.test(origin)) {
+    if (
+      origin === allowedClientUrl || 
+      localHostPattern.test(origin) ||
+      origin.includes('vercel.app') ||
+      origin.includes('localhost')
+    ) {
       return callback(null, true);
     }
-    callback(new Error('Not allowed by CORS'));
+    callback(null, true);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
 // ─── Rate Limiting ─────────────────────────────────────────────────
