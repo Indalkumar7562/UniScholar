@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, GraduationCap, Mail, Lock, User, Phone, Check, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Spinner } from '../ui/index.jsx';
+import PortalSwitchFooter from './PortalSwitchFooter.jsx';
 import toast from 'react-hot-toast';
 import { showToast } from '../../utils/toastQueue';
 
@@ -306,7 +307,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                 Continue with Google
               </button>
 
-              {/* Bottom Compact Register CTA & Admin/Partner link */}
+              {/* Bottom Compact Register CTA & Role Switcher */}
               <div className="pt-2 border-t border-slate-800/80 text-center space-y-1">
                 <p className="text-[11px] text-slate-400 font-medium">
                   New to UniScholar?{' '}
@@ -319,15 +320,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                   </button>
                 </p>
 
-                <p className="text-[10px] text-slate-500 font-medium pt-1">
-                  Are you an administrator or partner?{' '}
-                  <Link
-                    to="/admin/login"
-                    className="text-purple-400 font-bold hover:underline"
-                  >
-                    Admin / Partner Login →
-                  </Link>
-                </p>
+                <PortalSwitchFooter currentRole="student" currentMode="login" />
               </div>
 
             </div>
@@ -521,6 +514,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                     Sign In →
                   </button>
                 </p>
+                <PortalSwitchFooter currentRole="student" currentMode="register" />
               </div>
 
             </div>

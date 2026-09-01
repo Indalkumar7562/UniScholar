@@ -10,6 +10,7 @@ import LoginPage            from './pages/LoginPage.jsx';
 import RegisterPage         from './pages/RegisterPage.jsx';
 import AdminLoginPage       from './pages/AdminLoginPage.jsx';
 import PartnerLoginPage     from './pages/PartnerLoginPage.jsx';
+import PartnerRegisterPage  from './pages/PartnerRegisterPage.jsx';
 import AccessRestrictedPage from './pages/AccessRestrictedPage.jsx';
 
 import DashboardHome        from './pages/DashboardHome.jsx';
@@ -82,12 +83,18 @@ const PublicRoute = ({ children }) => {
 function AppRoutes() {
   return (
     <Routes>
-      {/* Public Pages */}
+      {/* Public Authentication Pages */}
       <Route path="/" element={<LandingPage />} />
-      <Route path="/login"         element={<PublicRoute><LoginPage /></PublicRoute>} />
-      <Route path="/register"      element={<PublicRoute><RegisterPage /></PublicRoute>} />
+      <Route path="/login"          element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="/student/login"  element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="/register"       element={<PublicRoute><RegisterPage /></PublicRoute>} />
+      <Route path="/student/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+
       <Route path="/admin/login"    element={<AdminLoginPage />} />
-      <Route path="/partner/login"  element={<PartnerLoginPage />} />
+      <Route path="/admin/register" element={<AdminLoginPage />} />
+      
+      <Route path="/partner/login"    element={<PartnerLoginPage />} />
+      <Route path="/partner/register" element={<PartnerRegisterPage />} />
       <Route path="/access-restricted" element={<AccessRestrictedPage />} />
 
       <Route path="/terms"    element={<TermsPage />} />

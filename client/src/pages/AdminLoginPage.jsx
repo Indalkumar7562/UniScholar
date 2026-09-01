@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { GraduationCap, Shield, Mail, Lock, AlertTriangle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Spinner } from '../components/ui/index.jsx';
+import PortalSwitchFooter from '../components/auth/PortalSwitchFooter.jsx';
 import toast from 'react-hot-toast';
 
 export default function AdminLoginPage() {
@@ -146,12 +147,12 @@ export default function AdminLoginPage() {
           </button>
         </form>
 
-        <div className="pt-4 border-t border-slate-800 flex flex-col gap-2 text-center text-xs text-slate-400">
-          <Link to="/partner/login" className="text-purple-400 font-bold hover:underline">
-            Are you a Scholarship Partner? Partner Login →
-          </Link>
-          <Link to="/login" className="text-slate-400 hover:text-white font-medium flex items-center justify-center gap-1 mt-1">
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Login
+        {/* Unified Role Switcher Footer */}
+        <PortalSwitchFooter currentRole="admin" currentMode="login" />
+
+        <div className="text-center pt-1">
+          <Link to="/login" className="text-slate-400 hover:text-white text-[11px] font-medium inline-flex items-center gap-1">
+            <ArrowLeft className="w-3.5 h-3.5" /> ← Back to Student Portal
           </Link>
         </div>
       </div>
