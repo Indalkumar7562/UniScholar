@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('uss_token', data.token);
     localStorage.setItem('uss_user', JSON.stringify(data.user));
     setUser(data.user);
-    await fetchProfile();
+    fetchProfile().catch(() => {});
     showToast(data.message || 'Welcome back!', 'success');
     return data;
   };
@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('uss_token', data.token);
     localStorage.setItem('uss_user', JSON.stringify(data.user));
     setUser(data.user);
-    await fetchProfile();
+    fetchProfile().catch(() => {});
     showToast(data.message || 'Logged in with Google!', 'success');
     return data;
   };
@@ -76,7 +76,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('uss_token', data.token);
     localStorage.setItem('uss_user', JSON.stringify(data.user));
     setUser(data.user);
-    await fetchProfile();
+    fetchProfile().catch(() => {});
     showToast(data.message || 'Account created!', 'success');
     return data;
   };
