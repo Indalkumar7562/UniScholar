@@ -26,7 +26,6 @@ export default function AuthContainer({ initialTab = 'login' }) {
   const switchTab = (tab) => {
     setActiveTab(tab);
     navigate(`/${tab}`, { replace: true });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // ── Login Form State ──────────────────────────────────────────────
@@ -140,16 +139,16 @@ export default function AuthContainer({ initialTab = 'login' }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-4 md:p-6 relative overflow-hidden font-sans">
+    <div className="min-h-screen min-h-[100svh] bg-slate-950 text-slate-100 flex flex-col justify-between items-center py-2 px-3 relative overflow-hidden font-sans">
       
       {/* Ambient background glow effects */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 bg-primary-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* ── 1. COMPACT PAGE HEADER ────────────────────────────────────────── */}
-      <header className="text-center pt-2 pb-4 max-w-sm mx-auto space-y-1">
-        <Link to="/" className="inline-flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-violet-600 flex items-center justify-center shadow-lg shadow-primary-500/20 group-hover:scale-105 transition-transform">
+      <header className="text-center pt-1 pb-2 space-y-0.5">
+        <Link to="/" className="inline-flex items-center gap-2 group">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-600 to-violet-600 flex items-center justify-center shadow-md shadow-primary-500/20 group-hover:scale-105 transition-transform">
             <GraduationCap className="w-5 h-5 text-white" />
           </div>
           <span className="font-extrabold text-xl tracking-tight text-white">UniScholar</span>
@@ -160,15 +159,15 @@ export default function AuthContainer({ initialTab = 'login' }) {
       </header>
 
       {/* ── 2. SINGLE COMPACT CONTAINER FOR ACTIVE FORM ONLY ──────────────── */}
-      <main className="w-full max-w-[540px] mx-auto my-auto py-1">
+      <main className="w-full max-w-[520px] mx-auto my-auto py-1">
         <div className="bg-[#0A1124] border border-slate-800/90 rounded-[20px] shadow-2xl backdrop-blur-xl overflow-hidden">
           
           {/* Top Segmented Mode Switcher */}
-          <div className="grid grid-cols-2 p-1.5 bg-[#050A15] border-b border-slate-800/80">
+          <div className="grid grid-cols-2 p-1 bg-[#050A15] border-b border-slate-800/80">
             <button
               type="button"
               onClick={() => switchTab('login')}
-              className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-1.5 rounded-lg text-[11px] font-extrabold tracking-wider transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'login'
                   ? 'bg-gradient-to-r from-primary-600 to-violet-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-slate-200'
@@ -180,7 +179,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
             <button
               type="button"
               onClick={() => switchTab('register')}
-              className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-1.5 rounded-lg text-[11px] font-extrabold tracking-wider transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'register'
                   ? 'bg-gradient-to-r from-violet-600 to-primary-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-slate-200'
@@ -194,46 +193,42 @@ export default function AuthContainer({ initialTab = 'login' }) {
               MODE A: ONLY LOGIN FORM RENDERED
              ────────────────────────────────────────────────────────────────── */}
           {activeTab === 'login' && (
-            <div className="p-6 md:p-8 space-y-5 animate-fade-in">
+            <div className="p-5 sm:p-6 space-y-3.5 animate-fade-in">
               
               {/* Heading */}
               <div>
-                <h2 className="text-2xl font-black text-white tracking-tight">Welcome Back 👋</h2>
-                <p className="text-xs text-slate-400 mt-1 font-medium">Sign in to your UniScholar account</p>
+                <h2 className="text-xl font-black text-white tracking-tight">Welcome Back 👋</h2>
+                <p className="text-[11px] text-slate-400 mt-0.5 font-medium">Sign in to your UniScholar account</p>
               </div>
 
-              {/* Compact Demo Account Helper */}
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-amber-400 flex items-center gap-1">
-                    <span>🧪 Demo Account</span>
-                  </div>
-                  <div className="text-[11px] font-mono text-amber-200/90 font-medium truncate mt-0.5">
-                    student@demo.com • demo@123
-                  </div>
+              {/* Ultra-Compact Demo Account Helper */}
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+                <div className="min-w-0 flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-amber-400">🧪 Demo Account:</span>
+                  <span className="text-[11px] font-mono text-amber-200/90 font-medium truncate">student@demo.com • demo@123</span>
                 </div>
                 <button
                   type="button"
                   onClick={fillDemoCredentials}
-                  className="text-xs font-bold text-amber-400 hover:text-amber-300 hover:underline shrink-0"
+                  className="text-[11px] font-bold text-amber-400 hover:text-amber-300 hover:underline shrink-0"
                 >
-                  Fill Demo Credentials →
+                  Fill →
                 </button>
               </div>
 
               {/* Error Banner */}
               {loginError && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-2.5 text-xs text-red-400 flex items-center gap-2 animate-fade-in font-medium">
-                  <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-2.5 text-[11px] text-red-400 flex items-center gap-2 animate-fade-in font-medium">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-red-400" />
                   <span>{loginError}</span>
                 </div>
               )}
 
               {/* Login Form */}
-              <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+              <form onSubmit={handleLoginSubmit} className="space-y-3">
                 {/* Email Address */}
                 <div>
-                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1">Email Address</label>
+                  <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider block mb-1">Email Address</label>
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
@@ -241,7 +236,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                       placeholder="you@example.com"
                       value={loginForm.email}
                       onChange={e => { setLoginForm(p => ({ ...p, email: e.target.value })); setLoginError(''); }}
-                      className="w-full h-[46px] bg-[#050A15] border border-slate-800 rounded-[12px] pl-10 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
+                      className="w-full h-[42px] bg-[#050A15] border border-slate-800 rounded-[10px] pl-10 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
                     />
                   </div>
                 </div>
@@ -249,11 +244,11 @@ export default function AuthContainer({ initialTab = 'login' }) {
                 {/* Password */}
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Password</label>
+                    <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Password</label>
                     <button
                       type="button"
                       onClick={handleForgotPassword}
-                      className="text-xs text-primary-400 hover:underline font-semibold"
+                      className="text-[11px] text-primary-400 hover:underline font-semibold"
                     >
                       Forgot Password?
                     </button>
@@ -265,14 +260,14 @@ export default function AuthContainer({ initialTab = 'login' }) {
                       placeholder="••••••••••••••••"
                       value={loginForm.password}
                       onChange={e => { setLoginForm(p => ({ ...p, password: e.target.value })); setLoginError(''); }}
-                      className="w-full h-[46px] bg-[#050A15] border border-slate-800 rounded-[12px] pl-10 pr-10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
+                      className="w-full h-[42px] bg-[#050A15] border border-slate-800 rounded-[10px] pl-10 pr-10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
                     />
                     <button
                       type="button"
                       onClick={() => setShowLoginPw(v => !v)}
                       className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
                     >
-                      {showLoginPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showLoginPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
                   </div>
                 </div>
@@ -281,7 +276,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                 <button
                   type="submit"
                   disabled={loginLoading}
-                  className="w-full h-[48px] rounded-[12px] bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-500 hover:to-violet-500 text-white font-extrabold text-xs shadow-lg shadow-primary-600/20 transition-all flex items-center justify-center gap-2 mt-2"
+                  className="w-full h-[44px] rounded-[10px] bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-500 hover:to-violet-500 text-white font-extrabold text-xs shadow-md shadow-primary-600/20 transition-all flex items-center justify-center gap-2 mt-1"
                 >
                   {loginLoading ? <Spinner /> : null}
                   {loginLoading ? 'Signing In...' : 'Sign In →'}
@@ -289,9 +284,9 @@ export default function AuthContainer({ initialTab = 'login' }) {
               </form>
 
               {/* Divider */}
-              <div className="flex items-center gap-3 my-3">
+              <div className="flex items-center gap-3 my-2">
                 <div className="flex-1 h-px bg-slate-800/80" />
-                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">or</span>
+                <span className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">or</span>
                 <div className="flex-1 h-px bg-slate-800/80" />
               </div>
 
@@ -299,7 +294,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
               <button
                 type="button"
                 onClick={() => handleGoogleAuth('Sign-In')}
-                className="w-full h-[46px] rounded-[12px] bg-[#050A15] hover:bg-slate-800/60 border border-slate-800 text-xs font-bold text-slate-200 flex items-center justify-center gap-2.5 transition-colors"
+                className="w-full h-[42px] rounded-[10px] bg-[#050A15] hover:bg-slate-800/60 border border-slate-800 text-xs font-bold text-slate-200 flex items-center justify-center gap-2 transition-colors"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -311,7 +306,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
               </button>
 
               {/* Bottom Compact Register CTA */}
-              <div className="pt-4 border-t border-slate-800/80 text-center">
+              <div className="pt-2.5 border-t border-slate-800/80 text-center">
                 <p className="text-xs text-slate-400 font-medium">
                   New to UniScholar?{' '}
                   <button
@@ -328,86 +323,86 @@ export default function AuthContainer({ initialTab = 'login' }) {
           )}
 
           {/* ──────────────────────────────────────────────────────────────────
-              MODE B: ONLY REGISTER FORM RENDERED
+              MODE B: ONLY REGISTER FORM RENDERED (OPTIMIZED COMPACT HEIGHT)
              ────────────────────────────────────────────────────────────────── */}
           {activeTab === 'register' && (
-            <div className="p-6 md:p-8 space-y-4 animate-fade-in">
+            <div className="p-5 sm:p-6 space-y-3 animate-fade-in">
               
               {/* Heading */}
               <div>
-                <h2 className="text-2xl font-black text-white tracking-tight">Create Your Account</h2>
-                <p className="text-xs text-slate-400 mt-1 font-medium">Start your scholarship journey with UniScholar.</p>
+                <h2 className="text-xl font-black text-white tracking-tight">Create Your Account</h2>
+                <p className="text-[11px] text-slate-400 mt-0.5 font-medium">Start your scholarship journey with UniScholar.</p>
               </div>
 
               {/* Error Banner */}
               {regError && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-2.5 text-xs text-red-400 flex items-center gap-2 animate-fade-in font-medium">
-                  <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-2.5 text-[11px] text-red-400 flex items-center gap-2 animate-fade-in font-medium">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-red-400" />
                   <span>{regError}</span>
                 </div>
               )}
 
               {/* Register Form */}
-              <form onSubmit={handleRegisterSubmit} className="space-y-3">
+              <form onSubmit={handleRegisterSubmit} className="space-y-2.5">
                 
                 {/* Full Name */}
                 <div>
-                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1">Full Name</label>
+                  <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider block mb-0.5">Full Name</label>
                   <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
                     <input
                       type="text"
                       placeholder="e.g. Rahul Sharma"
                       value={regForm.name}
                       onChange={e => { setRegForm(p => ({ ...p, name: e.target.value })); setRegError(''); }}
-                      className="w-full h-[44px] bg-[#050A15] border border-slate-800 rounded-[12px] pl-10 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
+                      className="w-full h-[42px] bg-[#050A15] border border-slate-800 rounded-[10px] pl-9 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
                     />
                   </div>
                 </div>
 
-                {/* Email Address & Mobile Number (2 Columns on Desktop) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Email Address & Mobile Number (2 Columns) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
-                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1">Email Address</label>
+                    <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider block mb-0.5">Email Address</label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
                       <input
                         type="email"
                         placeholder="you@example.com"
                         value={regForm.email}
                         onChange={e => { setRegForm(p => ({ ...p, email: e.target.value })); setRegError(''); }}
-                        className="w-full h-[44px] bg-[#050A15] border border-slate-800 rounded-[12px] pl-10 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
+                        className="w-full h-[42px] bg-[#050A15] border border-slate-800 rounded-[10px] pl-9 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1">Mobile Number</label>
+                    <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider block mb-0.5">Mobile Number</label>
                     <div className="relative">
-                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
                       <input
                         type="tel"
                         placeholder="+91 98765 43210"
                         value={regForm.mobile}
                         onChange={e => setRegForm(p => ({ ...p, mobile: e.target.value }))}
-                        className="w-full h-[44px] bg-[#050A15] border border-slate-800 rounded-[12px] pl-10 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
+                        className="w-full h-[42px] bg-[#050A15] border border-slate-800 rounded-[10px] pl-9 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Password & Confirm Password (2 Columns on Desktop) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Password & Confirm Password (2 Columns) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
-                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1">Password</label>
+                    <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider block mb-0.5">Password</label>
                     <div className="relative">
-                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
                       <input
                         type={showRegPw ? 'text' : 'password'}
                         placeholder="••••••••"
                         value={regForm.password}
                         onChange={e => { setRegForm(p => ({ ...p, password: e.target.value })); setRegError(''); }}
-                        className="w-full h-[44px] bg-[#050A15] border border-slate-800 rounded-[12px] pl-10 pr-9 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
+                        className="w-full h-[42px] bg-[#050A15] border border-slate-800 rounded-[10px] pl-9 pr-8 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
                       />
                       <button
                         type="button"
@@ -420,15 +415,15 @@ export default function AuthContainer({ initialTab = 'login' }) {
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1">Confirm Password</label>
+                    <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider block mb-0.5">Confirm Password</label>
                     <div className="relative">
-                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
                       <input
                         type={showRegConfirm ? 'text' : 'password'}
                         placeholder="Repeat password"
                         value={regForm.confirm}
                         onChange={e => { setRegForm(p => ({ ...p, confirm: e.target.value })); setRegError(''); }}
-                        className="w-full h-[44px] bg-[#050A15] border border-slate-800 rounded-[12px] pl-10 pr-9 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
+                        className="w-full h-[42px] bg-[#050A15] border border-slate-800 rounded-[10px] pl-9 pr-8 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
                       />
                       <button
                         type="button"
@@ -441,29 +436,29 @@ export default function AuthContainer({ initialTab = 'login' }) {
                   </div>
                 </div>
 
-                {/* Compact Password Requirements */}
-                <div className="p-2 rounded-xl bg-[#050A15] border border-slate-800 text-[11px] space-y-0.5">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PASSWORD MUST CONTAIN:</div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className={hasMinLen ? 'text-emerald-400 font-semibold flex items-center gap-1' : 'text-slate-500 flex items-center gap-1'}>
-                      {hasMinLen ? <Check className="w-3 h-3 text-emerald-400" /> : '•'} Min. 8 characters
+                {/* Single-Line Compact Password Requirements */}
+                <div className="px-2.5 py-1.5 rounded-lg bg-[#050A15] border border-slate-800 text-[10px] flex flex-wrap items-center justify-between gap-1">
+                  <span className="font-bold text-slate-400 uppercase tracking-wider">PASSWORD MUST CONTAIN:</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className={hasMinLen ? 'text-emerald-400 font-semibold flex items-center gap-0.5' : 'text-slate-500 flex items-center gap-0.5'}>
+                      {hasMinLen ? <Check className="w-3 h-3 text-emerald-400" /> : '•'} 8+ chars
                     </span>
-                    <span className={hasUpper ? 'text-emerald-400 font-semibold flex items-center gap-1' : 'text-slate-500 flex items-center gap-1'}>
-                      {hasUpper ? <Check className="w-3 h-3 text-emerald-400" /> : '•'} 1 Uppercase letter
+                    <span className={hasUpper ? 'text-emerald-400 font-semibold flex items-center gap-0.5' : 'text-slate-500 flex items-center gap-0.5'}>
+                      {hasUpper ? <Check className="w-3 h-3 text-emerald-400" /> : '•'} Uppercase
                     </span>
-                    <span className={hasNumber ? 'text-emerald-400 font-semibold flex items-center gap-1' : 'text-slate-500 flex items-center gap-1'}>
-                      {hasNumber ? <Check className="w-3 h-3 text-emerald-400" /> : '•'} 1 Number
+                    <span className={hasNumber ? 'text-emerald-400 font-semibold flex items-center gap-0.5' : 'text-slate-500 flex items-center gap-0.5'}>
+                      {hasNumber ? <Check className="w-3 h-3 text-emerald-400" /> : '•'} Number
                     </span>
                   </div>
                 </div>
 
                 {/* Terms & Privacy Checkbox */}
-                <label className="flex items-start gap-2 cursor-pointer text-xs text-slate-300 select-none pt-0.5">
+                <label className="flex items-start gap-2 cursor-pointer text-[11px] text-slate-300 select-none pt-0.5">
                   <input
                     type="checkbox"
                     checked={regForm.agreeTerms}
                     onChange={e => { setRegForm(p => ({ ...p, agreeTerms: e.target.checked })); setRegError(''); }}
-                    className="mt-0.5 rounded bg-[#050A15] border-slate-800 text-primary-600 focus:ring-primary-500"
+                    className="mt-0.5 rounded bg-[#050A15] border-slate-800 text-primary-600 focus:ring-primary-500 shrink-0"
                   />
                   <span>
                     I agree to UniScholar's <Link to="/terms" className="text-primary-400 hover:underline font-semibold">Terms & Conditions</Link> and <Link to="/privacy" className="text-primary-400 hover:underline font-semibold">Privacy Policy</Link>.
@@ -474,7 +469,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                 <button
                   type="submit"
                   disabled={regLoading}
-                  className="w-full h-[46px] rounded-[12px] bg-gradient-to-r from-violet-600 to-primary-600 hover:from-violet-500 hover:to-primary-500 text-white font-extrabold text-xs shadow-lg shadow-violet-600/20 transition-all flex items-center justify-center gap-2 mt-1"
+                  className="w-full h-[44px] rounded-[10px] bg-gradient-to-r from-violet-600 to-primary-600 hover:from-violet-500 hover:to-primary-500 text-white font-extrabold text-xs shadow-md shadow-violet-600/20 transition-all flex items-center justify-center gap-2 mt-1"
                 >
                   {regLoading ? <Spinner /> : null}
                   {regLoading ? 'Creating Account...' : 'Create Account →'}
@@ -482,9 +477,9 @@ export default function AuthContainer({ initialTab = 'login' }) {
               </form>
 
               {/* Divider */}
-              <div className="flex items-center gap-3 my-2.5">
+              <div className="flex items-center gap-3 my-2">
                 <div className="flex-1 h-px bg-slate-800/80" />
-                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">or</span>
+                <span className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">or</span>
                 <div className="flex-1 h-px bg-slate-800/80" />
               </div>
 
@@ -492,7 +487,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
               <button
                 type="button"
                 onClick={() => handleGoogleAuth('Sign-Up')}
-                className="w-full h-[44px] rounded-[12px] bg-[#050A15] hover:bg-slate-800/60 border border-slate-800 text-xs font-bold text-slate-200 flex items-center justify-center gap-2.5 transition-colors"
+                className="w-full h-[42px] rounded-[10px] bg-[#050A15] hover:bg-slate-800/60 border border-slate-800 text-xs font-bold text-slate-200 flex items-center justify-center gap-2 transition-colors"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -504,7 +499,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
               </button>
 
               {/* Bottom Compact Login CTA */}
-              <div className="pt-3 border-t border-slate-800/80 text-center">
+              <div className="pt-2 border-t border-slate-800/80 text-center">
                 <p className="text-xs text-slate-400 font-medium">
                   Already have an account?{' '}
                   <button
@@ -523,13 +518,13 @@ export default function AuthContainer({ initialTab = 'login' }) {
         </div>
       </main>
 
-      {/* ── 3. COMPACT PAGE FOOTER ────────────────────────────────────────── */}
-      <footer className="text-center text-xs text-slate-500 py-3 space-y-1.5">
-        <div className="flex items-center justify-center gap-2 text-slate-400 font-medium text-[11px]">
+      {/* ── 3. ULTRA-COMPACT PAGE FOOTER ──────────────────────────────────── */}
+      <footer className="text-center text-xs text-slate-500 py-1.5 space-y-1">
+        <div className="flex items-center justify-center gap-1.5 text-slate-400 font-medium text-[10px]">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
           <span>🔒 Your information is securely protected.</span>
         </div>
-        <div className="flex items-center justify-center gap-3 text-slate-400 text-[11px]">
+        <div className="flex items-center justify-center gap-3 text-slate-400 text-[10px]">
           <span>© 2026 UniScholar</span>
           <span>•</span>
           <Link to="/terms" className="hover:text-slate-300">Terms</Link>
