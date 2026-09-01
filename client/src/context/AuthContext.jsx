@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const init = async () => {
       const token = localStorage.getItem('uss_token');
-      if (token && user) {
+      if (token) {
         try {
           const { data } = await authAPI.getMe();
           setUser(data.user);
