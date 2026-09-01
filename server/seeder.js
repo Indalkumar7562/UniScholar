@@ -786,6 +786,9 @@ const schemes = [
   },
 ];
 
+const Application = require('./models/Application.model');
+const Document = require('./models/Document.model');
+
 const seedDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
@@ -795,18 +798,53 @@ const seedDB = async () => {
     await Scheme.deleteMany({});
     await EligibilityResult.deleteMany({});
     await Notification.deleteMany({});
+    await Application.deleteMany({});
+    await Document.deleteMany({});
     console.log('🗑️  Cleared existing DB data');
 
-    // Generate slug and shortDescription for each scheme since insertMany doesn't run pre-save hooks
-    const schemesWithSlugs = schemes.map(s => {
+    // Generate slug, deadlines, and shortDescription for each scheme
+    const now = new Date();
+    const schemesWithSlugs = schemes.map((s, idx) => {
       const slug = s.slug || s.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       const shortDescription = s.shortDescription || (s.description.slice(0, 120) + '...');
-      return { ...s, slug, shortDescription };
+      
+      // Calculate realistic deadlines
+      const openDate = new Date(now.getTime() - (10 * 24 * 60 * 60 * 1000)); // opened 10 days ago
+      const deadline = new Date(now.getTime());
+      
+      if (idx === 2) {
+        // Expired scheme for testing
+        deadline.setDate(deadline.getDate() - 4);
+      } else if (idx === 0) {
+        // Urgent scheme (5 days remaining)
+        deadline.setDate(deadline.getDate() + 5);
+      } else if (idx === 1 || idx === 22) {
+        // Approaching deadline (12 days remaining)
+        deadline.setDate(deadline.getDate() + 12);
+      } else {
+        // Open deadline (20 - 60 days remaining)
+        deadline.setDate(deadline.getDate() + (20 + (idx * 2)));
+      }
+
+      const isExp = deadline < now;
+      const status = isExp ? 'Expired' : 'Active';
+
+      return {
+        ...s,
+        slug,
+        shortDescription,
+        applicationOpenDate: openDate,
+        applicationDeadline: deadline,
+        lastDateToApply: deadline,
+        status,
+        isActive: !isExp,
+        isVerified: true,
+      };
     });
 
     // Insert schemes
-    const created = await Scheme.insertMany(schemesWithSlugs);
-    console.log(`✅ Seeded ${created.length} scholarship schemes`);
+    const createdSchemes = await Scheme.insertMany(schemesWithSlugs);
+    console.log(`✅ Seeded ${createdSchemes.length} scholarship schemes`);
 
     // Create a demo admin user
     await User.deleteMany({ email: 'admin@uss.gov.in' });
@@ -845,21 +883,105 @@ const seedDB = async () => {
       cgpaOrPercentage: 88,
       currentYearOrSemester: '1st Year',
       profession: 'Student',
-      annualFamilyIncome: 150000, // set below PM National limit
+      annualFamilyIncome: 150000,
       bplStatus: false,
       category: 'General',
       minorityStatus: false,
       disabilityStatus: false,
       documentUploads: {
         aadhaar: 'https://uss-documents.s3.amazonaws.com/aadhaar_priya.pdf',
-        incomeCertificate: '', // initially empty for simulation
+        incomeCertificate: 'https://uss-documents.s3.amazonaws.com/income_priya.pdf',
         casteCertificate: '',
         domicile: 'https://uss-documents.s3.amazonaws.com/domicile_priya.pdf',
         marksheet: 'https://uss-documents.s3.amazonaws.com/marksheet_priya.pdf',
+        marksheet10th: 'https://uss-documents.s3.amazonaws.com/marksheet_priya.pdf',
+        marksheet12th: 'https://uss-documents.s3.amazonaws.com/marksheet_priya.pdf',
         disabilityCertificate: ''
       }
     });
     console.log(`✅ Demo student created: student@demo.com / demo@123`);
+
+    // Seed demo documents with expiry dates
+    const doc1 = await Document.create({
+      user: student._id,
+      name: 'Aadhaar Card',
+      originalName: 'aadhaar_priya.pdf',
+      category: 'Identity',
+      filePath: '/uploads/documents/sample_aadhaar.pdf',
+      fileSize: 450000,
+      mimeType: 'application/pdf',
+      status: 'Verified',
+      issueDate: new Date('2020-01-15'),
+      expiryDate: new Date('2030-01-15'),
+    });
+
+    const doc2 = await Document.create({
+      user: student._id,
+      name: 'Income Certificate',
+      originalName: 'income_priya.pdf',
+      category: 'Income',
+      filePath: '/uploads/documents/sample_income.pdf',
+      fileSize: 320000,
+      mimeType: 'application/pdf',
+      status: 'Verified',
+      issueDate: new Date('2026-01-10'),
+      expiryDate: new Date('2027-01-09'), // valid for 1 year
+    });
+
+    const doc3 = await Document.create({
+      user: student._id,
+      name: '12th Board Marksheet',
+      originalName: 'marksheet_priya.pdf',
+      category: 'Academic',
+      filePath: '/uploads/documents/sample_marksheet.pdf',
+      fileSize: 520000,
+      mimeType: 'application/pdf',
+      status: 'Verified',
+      issueDate: new Date('2025-06-01'),
+    });
+    console.log(`✅ Seeded ${[doc1, doc2, doc3].length} student credentials in Document Vault`);
+
+    // Seed demo applications
+    const pmScheme = createdSchemes.find(s => s.name.includes('PM National'));
+    const licScheme = createdSchemes.find(s => s.name.includes('LIC HFL'));
+    const mahindraScheme = createdSchemes.find(s => s.name.includes('Mahindra Finance'));
+
+    if (pmScheme) {
+      await Application.create({
+        user: student._id,
+        scheme: pmScheme._id,
+        status: 'Submitted',
+        appliedDate: new Date(now.getTime() - (5 * 24 * 60 * 60 * 1000)),
+        lastUpdated: new Date(),
+        notes: 'Submitted online via NSP portal.',
+        readinessScore: 92,
+      });
+    }
+
+    if (licScheme) {
+      await Application.create({
+        user: student._id,
+        scheme: licScheme._id,
+        status: 'Under Review',
+        appliedDate: new Date(now.getTime() - (2 * 24 * 60 * 60 * 1000)),
+        lastUpdated: new Date(),
+        notes: 'Under review by LIC CSR committee.',
+        readinessScore: 96,
+      });
+    }
+
+    if (mahindraScheme) {
+      await Application.create({
+        user: student._id,
+        scheme: mahindraScheme._id,
+        status: 'Ready to Apply',
+        appliedDate: new Date(),
+        lastUpdated: new Date(),
+        notes: 'Checklist completed.',
+        readinessScore: 88,
+      });
+    }
+    console.log(`✅ Seeded 3 student application tracking records`);
 
     // Create initial notification
     await Notification.create({

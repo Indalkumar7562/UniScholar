@@ -134,8 +134,26 @@ const runTests = async () => {
     }
   });
 
-  // Test 4: Log in as Admin
-  console.log('\n[TEST 4] Logging in as admin@uss.gov.in...');
+  // Test 5: Application Tracker API
+  console.log('\n[TEST 5] Fetching tracked student applications...');
+  const appTrackerRes = await request({
+    hostname: 'localhost',
+    port: 5000,
+    path: '/api/applications',
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${studentToken}`
+    }
+  });
+
+  if (appTrackerRes.statusCode !== 200 || !appTrackerRes.body.success) {
+    console.error('❌ Application tracker API failed!', appTrackerRes.body);
+    process.exit(1);
+  }
+  console.log(`✅ Tracked applications fetched successfully! (Total: ${appTrackerRes.body.count})`);
+
+  // Test 6: Log in as Admin
+  console.log('\n[TEST 6] Logging in as admin@uss.gov.in...');
   const adminLoginRes = await request({
     hostname: 'localhost',
     port: 5000,
@@ -156,8 +174,8 @@ const runTests = async () => {
   const adminToken = adminLoginRes.body.token;
   console.log('✅ Admin logged in successfully!');
 
-  // Test 5: Admin Analytics Check
-  console.log('\n[TEST 5] Fetching admin analytics & metrics...');
+  // Test 7: Admin Analytics Check
+  console.log('\n[TEST 7] Fetching admin analytics & metrics...');
   const adminAnalyticsRes = await request({
     hostname: 'localhost',
     port: 5000,
@@ -179,6 +197,8 @@ const runTests = async () => {
   console.log(`    * Total Users: ${metrics.totalUsers}`);
   console.log(`    * Active Schemes: ${metrics.activeSchemes}`);
   console.log(`    * Average Match Score: ${metrics.avgScore}%`);
+  console.log(`    * Total Applications: ${metrics.totalApplications}`);
+  console.log(`    * Document Verification Rate: ${metrics.docVerificationRate}%`);
   console.log(`    * Fraud Alerts Count: ${metrics.fraudAlertsCount}`);
 
   console.log('\n==================================================');

@@ -14,12 +14,13 @@ import {
 import ChatbotWidget from '../chatbot/ChatbotWidget.jsx';
 
 const BASE_NAV_ITEMS = [
-  { to: '/dashboard',   labelKey: 'dashboard',        icon: LayoutDashboard },
-  { to: '/profile',     labelKey: 'myProfile',        icon: User },
-  { to: '/eligibility', labelKey: 'checkEligibility', icon: CheckCircle },
-  { to: '/schemes',     labelKey: 'browseSchemes',    icon: BookOpen },
-  { to: '/results',     labelKey: 'myResults',        icon: Trophy },
-  { to: '/ai-hub',      labelKey: 'aiHub',            icon: Sparkles },
+  { to: '/dashboard',    labelKey: 'dashboard',        icon: LayoutDashboard },
+  { to: '/profile',      labelKey: 'myProfile',        icon: User },
+  { to: '/applications', labelKey: 'myApplications',  icon: FileCheck },
+  { to: '/eligibility',  labelKey: 'checkEligibility', icon: CheckCircle },
+  { to: '/schemes',      labelKey: 'browseSchemes',    icon: BookOpen },
+  { to: '/results',      labelKey: 'myResults',        icon: Trophy },
+  { to: '/ai-hub',       labelKey: 'aiHub',            icon: Sparkles },
 ];
 
 const SECONDARY_NAV_ITEMS = [

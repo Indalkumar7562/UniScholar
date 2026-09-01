@@ -32,6 +32,17 @@ const documentSchema = new mongoose.Schema(
     mimeType: {
       type: String,
     },
+    status: {
+      type: String,
+      enum: ['Uploaded', 'Processing', 'Verified', 'Needs Review', 'Rejected'],
+      default: 'Uploaded',
+    },
+    issueDate: {
+      type: Date,
+    },
+    expiryDate: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );

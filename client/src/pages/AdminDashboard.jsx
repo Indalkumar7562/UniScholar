@@ -24,7 +24,10 @@ export default function AdminDashboard() {
     amount: '',
     amountValue: '',
     frequency: 'Yearly',
-    officialLink: '',
+    officialLink: 'https://scholarships.gov.in',
+    applicationDeadline: '',
+    applicationOpenDate: '',
+    status: 'Active',
     eligibilityCriteria: {
       minAge: 16,
       maxAge: 28,
@@ -86,6 +89,9 @@ export default function AdminDashboard() {
   };
 
   const openAddModal = () => {
+    const defaultDeadline = new Date();
+    defaultDeadline.setDate(defaultDeadline.getDate() + 30);
+
     setEditingSchemeId(null);
     setFormData({
       name: '',
@@ -95,7 +101,10 @@ export default function AdminDashboard() {
       amount: '',
       amountValue: '',
       frequency: 'Yearly',
-      officialLink: '',
+      officialLink: 'https://scholarships.gov.in',
+      applicationDeadline: defaultDeadline.toISOString().split('T')[0],
+      applicationOpenDate: new Date().toISOString().split('T')[0],
+      status: 'Active',
       eligibilityCriteria: {
         minAge: 16,
         maxAge: 28,
@@ -117,6 +126,8 @@ export default function AdminDashboard() {
 
   const openEditModal = (scheme) => {
     setEditingSchemeId(scheme._id);
+    const deadlineVal = scheme.applicationDeadline || scheme.lastDateToApply;
+
     setFormData({
       name: scheme.name,
       description: scheme.description,
@@ -125,7 +136,10 @@ export default function AdminDashboard() {
       amount: scheme.amount,
       amountValue: scheme.amountValue || '',
       frequency: scheme.frequency || 'Yearly',
-      officialLink: scheme.officialLink || '',
+      officialLink: scheme.officialLink || 'https://scholarships.gov.in',
+      applicationDeadline: deadlineVal ? new Date(deadlineVal).toISOString().split('T')[0] : '',
+      applicationOpenDate: scheme.applicationOpenDate ? new Date(scheme.applicationOpenDate).toISOString().split('T')[0] : '',
+      status: scheme.status || (scheme.isActive ? 'Active' : 'Inactive'),
       eligibilityCriteria: {
         minAge: scheme.eligibilityCriteria?.minAge ?? 16,
         maxAge: scheme.eligibilityCriteria?.maxAge ?? 28,
@@ -160,6 +174,11 @@ export default function AdminDashboard() {
       amountValue: Number(formData.amountValue),
       frequency: formData.frequency,
       officialLink: formData.officialLink,
+      applicationDeadline: formData.applicationDeadline ? new Date(formData.applicationDeadline) : undefined,
+      lastDateToApply: formData.applicationDeadline ? new Date(formData.applicationDeadline) : undefined,
+      applicationOpenDate: formData.applicationOpenDate ? new Date(formData.applicationOpenDate) : undefined,
+      status: formData.status,
+      isActive: formData.status === 'Active',
       eligibilityCriteria: {
         minAge: Number(formData.eligibilityCriteria.minAge),
         maxAge: Number(formData.eligibilityCriteria.maxAge),
@@ -532,6 +551,41 @@ export default function AdminDashboard() {
                     value={formData.amountValue}
                     onChange={(e) => setFormData({ ...formData, amountValue: e.target.value })}
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="label">Application Opens Date</label>
+                  <input 
+                    type="date" 
+                    className="input py-2 font-mono text-xs" 
+                    value={formData.applicationOpenDate}
+                    onChange={(e) => setFormData({ ...formData, applicationOpenDate: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="label">Application Last Date (Deadline)</label>
+                  <input 
+                    type="date" 
+                    className="input py-2 font-mono text-xs" 
+                    required
+                    value={formData.applicationDeadline}
+                    onChange={(e) => setFormData({ ...formData, applicationDeadline: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="label">Program Status</label>
+                  <select 
+                    className="select py-2 text-xs" 
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  >
+                    <option value="Active">🟢 Active (Applications Open)</option>
+                    <option value="Expired">🔴 Expired / Closed</option>
+                    <option value="Inactive">⏸ Inactive</option>
+                    <option value="Draft">📝 Draft</option>
+                  </select>
                 </div>
               </div>
 

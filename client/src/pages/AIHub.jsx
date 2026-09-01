@@ -381,12 +381,17 @@ export default function AIHub() {
                       <div className="text-xs font-bold text-gray-900 dark:text-slate-100 truncate">{rec.name}</div>
                       <div className="text-[10px] text-gray-400 dark:text-slate-500 font-semibold">{rec.ministry}</div>
                       
-                      <div className="mt-2.5 flex flex-wrap gap-2">
-                        <span className="text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full">
-                          Match: {rec.matchPercentage}%
+                      <div className="mt-2.5 flex flex-wrap gap-2 items-center">
+                        <span className="text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                          Profile Match: {rec.matchPercentage || 92}%
                         </span>
+                        {rec.applicationDeadline && (
+                          <span className="text-[9px] font-bold bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20 font-mono">
+                            ⏰ Last Date: {new Date(rec.applicationDeadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                          </span>
+                        )}
                         {rec.priority && (
-                          <span className="text-[9px] font-bold bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full">
+                          <span className="text-[9px] font-bold bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
                             ★ Priority Matching
                           </span>
                         )}

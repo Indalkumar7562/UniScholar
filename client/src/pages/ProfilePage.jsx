@@ -38,19 +38,29 @@ export default function ProfilePage() {
   const [ocrLoading, setOcrLoading] = useState({});
   const [ocrResults, setOcrResults] = useState({});
 
+  const [previewImage, setPreviewImage] = useState(null);
+
   const handleAvatarUpload = async (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
 
-    if (!selectedFile.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowedTypes.includes(selectedFile.type)) {
+      toast.error('Invalid format. Please select a JPG, JPEG, or PNG image.');
       return;
     }
 
     if (selectedFile.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
+      toast.error('Image size must be 5MB or less');
       return;
     }
+
+    // Live preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewImage(reader.result);
+    };
+    reader.readAsDataURL(selectedFile);
 
     const formData = new FormData();
     formData.append('avatar', selectedFile);
@@ -59,12 +69,45 @@ export default function ProfilePage() {
     try {
       const { data } = await userAPI.uploadAvatar(formData);
       updateUser(data.user);
+      setPreviewImage(null);
       toast.success('Profile picture updated successfully!', { id: toastId });
     } catch (err) {
       console.error(err);
+      setPreviewImage(null);
       toast.error(err.response?.data?.message || 'Failed to upload profile picture', { id: toastId });
     }
   };
+
+  const handleRemoveAvatar = async () => {
+    if (!window.confirm('Are you sure you want to remove your profile picture?')) return;
+    const toastId = toast.loading('Removing profile picture...');
+    try {
+      const { data } = await userAPI.removeAvatar();
+      updateUser(data.user);
+      setPreviewImage(null);
+      toast.success('Profile picture removed successfully!', { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to remove profile picture', { id: toastId });
+    }
+  };
+
+  const getMissingFields = () => {
+    const missing = [];
+    if (!form.fullName) missing.push('Full Name');
+    if (!form.mobileNumber) missing.push('Mobile Number');
+    if (!form.age) missing.push('Age');
+    if (!form.state) missing.push('Residency State');
+    if (!form.educationLevel) missing.push('Education Level');
+    if (!form.stream) missing.push('Education Stream');
+    if (!form.cgpaOrPercentage) missing.push('Academic Score / Marks %');
+    if (form.annualFamilyIncome === '') missing.push('Annual Family Income');
+    if (!form.documentUploads?.incomeCertificate) missing.push('Income Certificate Document');
+    if (!form.documentUploads?.marksheet && !form.documentUploads?.marksheet12th && !form.documentUploads?.marksheet10th) missing.push('Marksheet Document');
+    return missing;
+  };
+
+  const missingFieldsList = getMissingFields();
 
 
   const [form, setForm] = useState({
@@ -267,35 +310,84 @@ export default function ProfilePage() {
         subtitle="Manage your academic, financial, and caste attributes to identify matches."
       />
 
-      {/* Progress Header Card */}
-      <div className="card glass-card flex flex-col md:flex-row items-center gap-6 p-6">
-        <div className="relative group cursor-pointer flex-shrink-0">
-          <label className="cursor-pointer relative block rounded-full overflow-hidden w-16 h-16 shadow-md border-2 border-white dark:border-slate-800 hover:scale-105 active:scale-95 transition-transform">
-            <input 
-              type="file" 
-              className="hidden" 
-              accept="image/*" 
-              onChange={handleAvatarUpload} 
-            />
-            <Avatar name={form.fullName || user?.name || '?'} size="xl" src={user?.avatar} />
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <span className="text-[9px] text-white font-bold tracking-wider uppercase">Upload</span>
+      {/* Progress & Profile Photo Header Card */}
+      <div className="card glass-card p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+          
+          {/* Profile Photo Avatar Box */}
+          <div className="flex flex-col items-center gap-3 flex-shrink-0">
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg border-4 border-white dark:border-slate-800 bg-emerald-500/10 flex items-center justify-center">
+                {previewImage ? (
+                  <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <Avatar name={form.fullName || user?.name || 'Student'} size="2xl" src={user?.avatar} />
+                )}
+              </div>
             </div>
-          </label>
-        </div>
 
-        <div className="flex-1 min-w-0 w-full text-center md:text-left">
-          <h2 className="text-xl font-extrabold text-gray-900 dark:text-slate-100">{form.fullName || 'New Candidate'}</h2>
-          <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-            {form.educationLevel || 'No Education Level'} · {form.stream || 'No Stream'} · {form.state || 'No State'}
-          </p>
-          <div className="mt-4 max-w-md mx-auto md:mx-0">
-            <ProgressBar value={pct} color={pct === 100 ? 'success' : 'primary'} />
-            <div className="flex justify-between items-center mt-1 text-[10px] font-bold text-gray-400">
-              <span>{pct}% completeness</span>
-              <span>{pct === 100 ? 'Verified Complete' : 'Under Development'}</span>
+            <div className="flex items-center gap-2">
+              <label className="btn btn-outline btn-xs text-[11px] px-3 py-1 cursor-pointer">
+                Change Photo
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/jpeg,image/png,image/jpg" 
+                  onChange={handleAvatarUpload} 
+                />
+              </label>
+
+              {(user?.avatar || previewImage) && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  className="btn btn-ghost btn-xs text-[11px] text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1"
+                >
+                  Remove Photo
+                </button>
+              )}
             </div>
+            <span className="text-[10px] text-gray-400 dark:text-slate-500">JPG, JPEG, PNG (max 5MB)</span>
           </div>
+
+          {/* Student Info & Progress Bar */}
+          <div className="flex-1 w-full text-center sm:text-left space-y-3">
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 dark:text-slate-100">
+                {form.fullName || user?.name || 'Indal Kumar'}
+              </h2>
+              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                Student Candidate • {form.educationLevel || '12th Pass'} ({form.stream || 'Science'})
+              </p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+                {form.state || 'Maharashtra'} • Category: {form.category || 'General'} • Family Income: ₹{form.annualFamilyIncome ? Number(form.annualFamilyIncome).toLocaleString('en-IN') : '0'}/yr
+              </p>
+            </div>
+
+            {/* Completion Progress Bar */}
+            <div className="pt-2 max-w-lg">
+              <div className="flex justify-between items-center text-xs font-bold mb-1.5">
+                <span className="text-gray-700 dark:text-slate-300">Profile Completion</span>
+                <span className="font-mono text-emerald-600 dark:text-emerald-400">{pct}%</span>
+              </div>
+              <ProgressBar value={pct} color={pct === 100 ? 'success' : 'primary'} />
+            </div>
+
+            {/* Missing Fields Indicator */}
+            {missingFieldsList.length > 0 && (
+              <div className="p-3 rounded-xl bg-amber-50/70 dark:bg-amber-900/20 border border-amber-200/60 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-300">
+                <span className="font-bold">Missing required fields to reach 100%:</span>
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {missingFieldsList.map((item, idx) => (
+                    <span key={idx} className="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 font-medium text-[11px]">
+                      • {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
 

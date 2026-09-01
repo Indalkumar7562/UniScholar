@@ -16,6 +16,7 @@ import SchemeComparisonPage from './pages/SchemeComparisonPage.jsx';
 import AdminDashboard       from './pages/AdminDashboard.jsx';
 import AIHub                from './pages/AIHub.jsx';
 import DocumentVault        from './pages/DocumentVault.jsx';
+import ApplicationTrackerPage from './pages/ApplicationTrackerPage.jsx';
 
 import StudentServices      from './pages/StudentServices.jsx';
 import CareerGuidance       from './pages/CareerGuidance.jsx';
@@ -74,6 +75,11 @@ function AppRoutes() {
       <Route path="/vault" element={
         <ProtectedRoute>
           <DashboardLayout><DocumentVault /></DashboardLayout>
+        </ProtectedRoute>
+      }/>
+      <Route path="/applications" element={
+        <ProtectedRoute>
+          <DashboardLayout><ApplicationTrackerPage /></DashboardLayout>
         </ProtectedRoute>
       }/>
 

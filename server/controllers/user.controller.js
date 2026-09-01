@@ -123,26 +123,32 @@ const getBookmarks = async (req, res) => {
   }
 };
 
-// @desc    Update user profile avatar
-// @route   PUT /api/users/avatar
+// @desc    Update user profile avatar / image
+// @route   PUT /api/users/avatar or POST /api/profile/image
 // @access  Private
 const updateAvatar = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'Please upload an image file' });
+      return res.status(400).json({ success: false, message: 'Please upload an image file (JPG, JPEG, PNG, max 5MB)' });
     }
 
-    const avatarUrl = `/uploads/${req.file.filename}`;
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { avatar: avatarUrl },
       { new: true }
     ).populate('bookmarks');
 
+    await Profile.findOneAndUpdate(
+      { user: req.user._id },
+      { profileImage: avatarUrl }
+    );
+
     res.json({
       success: true,
       message: 'Profile picture updated successfully',
       user,
+      avatarUrl,
     });
   } catch (error) {
     console.error('Error updating avatar:', error);
@@ -150,5 +156,39 @@ const updateAvatar = async (req, res) => {
   }
 };
 
-module.exports = { getProfile, upsertProfile, toggleBookmark, getBookmarks, updateAvatar };
+// @desc    Remove user profile avatar
+// @route   DELETE /api/users/avatar or DELETE /api/profile/image
+// @access  Private
+const removeAvatar = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (user.avatar) {
+      const filename = user.avatar.replace('/uploads/avatars/', '');
+      const filePath = path.join(__dirname, '..', 'uploads', 'avatars', filename);
+      if (fs.existsSync(filePath)) {
+        try { fs.unlinkSync(filePath); } catch (e) {}
+      }
+    }
+
+    user.avatar = '';
+    await user.save();
+
+    await Profile.findOneAndUpdate(
+      { user: req.user._id },
+      { profileImage: '' }
+    );
+
+    res.json({
+      success: true,
+      message: 'Profile picture removed successfully',
+      user,
+    });
+  } catch (error) {
+    console.error('Error removing avatar:', error);
+    res.status(500).json({ success: false, message: 'Server error removing profile picture' });
+  }
+};
+
+module.exports = { getProfile, upsertProfile, toggleBookmark, getBookmarks, updateAvatar, removeAvatar };
+
 

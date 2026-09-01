@@ -44,6 +44,10 @@ const profileSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    profileImage: {
+      type: String,
+      default: '',
+    },
 
     // Education Details
     educationLevel: {

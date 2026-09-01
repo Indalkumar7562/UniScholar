@@ -2,6 +2,7 @@ const dictionary = {
   en: {
     dashboard: "Dashboard",
     myProfile: "My Profile",
+    myApplications: "My Applications",
     checkEligibility: "Check Eligibility",
     browseSchemes: "Browse Schemes",
     myResults: "My Results",

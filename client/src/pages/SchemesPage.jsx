@@ -13,60 +13,88 @@ export default function SchemesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState('');
   const [category, setCategory] = useState('All');
-  const [pagination, setPagination] = useState({});
-  const [page, setPage]       = useState(1);
+  const [sort, setSort] = useState('deadline');
+  const [statusFilter, setStatusFilter] = useState('All');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const params = { page, limit: 9 };
-      if (search)           params.search   = search;
+      if (search) params.search = search;
       if (category !== 'All') params.category = category;
+      if (sort) params.sort = sort;
+      if (statusFilter !== 'All') params.status = statusFilter;
+
       const { data } = await schemeAPI.getAll(params);
       setSchemes(data.schemes);
       setPagination(data.pagination);
     } catch {/* ignore */} finally {
       setLoading(false);
     }
-  }, [search, category, page]);
+  }, [search, category, sort, statusFilter, page]);
 
   useEffect(() => { load(); }, [load]);
 
   // Reset page on filter change
-  useEffect(() => { setPage(1); }, [search, category]);
+  useEffect(() => { setPage(1); }, [search, category, sort, statusFilter]);
 
   return (
     <div className="animate-fade-in space-y-6">
       <SectionHeader
         title="Browse Schemes"
-        subtitle={`${pagination.total || 0} government scholarship schemes`}
+        subtitle={`${pagination.total || 0} active government and corporate scholarship schemes`}
       />
 
       {/* Filter bar */}
-      <div className="flex flex-wrap gap-3 items-center">
+      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             className="input pl-10 text-sm"
-            placeholder="Search by name, keyword…"
+            placeholder="Search by scheme name, provider, keyword…"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-1.5">
-          <SlidersHorizontal className="w-3.5 h-3.5 text-gray-400" />
-          <div className="flex gap-1.5 flex-wrap">
-            {CATEGORIES.map(c => (
-              <button
-                key={c}
-                onClick={() => setCategory(c)}
-                className={`chip ${category === c ? 'chip-active' : ''}`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Sort Dropdown */}
+          <select
+            value={sort}
+            onChange={e => setSort(e.target.value)}
+            className="select text-xs font-semibold py-2 px-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl"
+          >
+            <option value="deadline">⏰ Closest Deadline</option>
+            <option value="deadline_desc">📅 Latest Deadline</option>
+            <option value="amount">💰 Highest Amount</option>
+            <option value="newest">✨ Newest First</option>
+          </select>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="select text-xs font-semibold py-2 px-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl"
+          >
+            <option value="All">All Statuses</option>
+            <option value="Active">🟢 Applications Open</option>
+            <option value="Expired">🔴 Closed / Expired</option>
+          </select>
         </div>
+      </div>
+
+      {/* Category Chips */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <SlidersHorizontal className="w-3.5 h-3.5 text-gray-400 mr-1" />
+        {CATEGORIES.map(c => (
+          <button
+            key={c}
+            onClick={() => setCategory(c)}
+            className={`chip ${category === c ? 'chip-active' : ''}`}
+          >
+            {c}
+          </button>
+        ))}
       </div>
 
       {/* Grid */}

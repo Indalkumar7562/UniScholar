@@ -7,7 +7,7 @@ const { runEligibilityCheck } = require('../utils/eligibility.utils');
 // @access  Public
 const getSchemes = async (req, res) => {
   try {
-    const { search, category, state, page = 1, limit = 12 } = req.query;
+    const { search, category, state, sort, status, page = 1, limit = 12 } = req.query;
     const query = { isActive: true };
 
     if (search) {
@@ -24,10 +24,24 @@ const getSchemes = async (req, res) => {
         { 'eligibilityCriteria.states': state },
       ];
     }
+    if (status && status !== 'All') {
+      query.status = status;
+    }
+
+    let sortOption = { createdAt: -1 };
+    if (sort === 'deadline' || sort === 'deadline_asc') {
+      sortOption = { applicationDeadline: 1 };
+    } else if (sort === 'deadline_desc') {
+      sortOption = { applicationDeadline: -1 };
+    } else if (sort === 'amount' || sort === 'amount_desc') {
+      sortOption = { amountValue: -1 };
+    } else if (sort === 'newest') {
+      sortOption = { createdAt: -1 };
+    }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [schemes, total] = await Promise.all([
-      Scheme.find(query).skip(skip).limit(parseInt(limit)).sort({ createdAt: -1 }),
+      Scheme.find(query).skip(skip).limit(parseInt(limit)).sort(sortOption),
       Scheme.countDocuments(query),
     ]);
 

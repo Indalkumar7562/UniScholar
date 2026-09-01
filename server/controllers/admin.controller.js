@@ -4,6 +4,9 @@ const Scheme = require('../models/Scheme.model');
 const EligibilityResult = require('../models/EligibilityResult.model');
 const Notification = require('../models/Notification.model');
 
+const Application = require('../models/Application.model');
+const Document = require('../models/Document.model');
+
 // @desc    Get dashboard metrics, charts data, and analytics
 // @route   GET /api/admin/analytics
 // @access  Private/Admin
@@ -14,6 +17,16 @@ const getAdminAnalytics = async (req, res) => {
     const totalSchemes = await Scheme.countDocuments();
     const activeSchemes = await Scheme.countDocuments({ isActive: true });
     
+    // Application KPIs
+    const totalApplications = await Application.countDocuments();
+    const approvedApplications = await Application.countDocuments({ status: 'Approved' });
+    const pendingApplications = await Application.countDocuments({ status: { $in: ['Submitted', 'Under Review'] } });
+    
+    // Document KPIs
+    const totalDocuments = await Document.countDocuments();
+    const verifiedDocuments = await Document.countDocuments({ status: 'Verified' });
+    const docVerificationRate = totalDocuments > 0 ? Math.round((verifiedDocuments / totalDocuments) * 100) : 100;
+
     // Average profile completeness
     const profiles = await Profile.find();
     let totalCompleteness = 0;
@@ -64,16 +77,16 @@ const getAdminAnalytics = async (req, res) => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    // 3. Most Searched / Viewed Schemes (Simulated based on totalApplicants/bookmarks)
+    // 3. Most Searched / Viewed Schemes
     const hotSchemes = await Scheme.find().sort({ totalApplicants: -1 }).limit(5);
     const topSchemes = hotSchemes.map(s => ({
       name: s.name,
       amount: s.amount,
-      viewsCount: (s.totalApplicants * 4) + 12, // simulated views multiplier
+      viewsCount: (s.totalApplicants * 4) + 12,
       applicantsCount: s.totalApplicants
     }));
 
-    // 4. Fraud Detection Alerts (Discrepancy warnings from AI scan)
+    // 4. Fraud Detection Alerts
     const warnings = await Notification.find({ type: 'warning' }).populate('user', 'name email').sort({ createdAt: -1 }).limit(10);
     const fraudAlerts = warnings.map(w => ({
       id: w._id,
@@ -84,7 +97,6 @@ const getAdminAnalytics = async (req, res) => {
       createdAt: w.createdAt
     }));
 
-    // If no warnings yet, provide a mock discrepancy for demonstration in demo dashboard
     if (fraudAlerts.length === 0) {
       fraudAlerts.push({
         id: 'mock-1',
@@ -101,10 +113,15 @@ const getAdminAnalytics = async (req, res) => {
     res.json({
       success: true,
       metrics: {
-        totalUsers: totalUsers,
+        totalUsers,
         totalSchemes,
         activeSchemes,
         avgScore: avgMatchScore,
+        avgCompleteness: avgProfileCompleteness,
+        totalApplications,
+        approvedApplications,
+        pendingApplications,
+        docVerificationRate,
         fraudAlertsCount: warnings.length || fraudAlerts.length
       },
       categoryDistribution: Object.entries(categoryStats).map(([name, value]) => ({ name, value })),

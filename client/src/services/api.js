@@ -45,6 +45,8 @@ export const documentAPI = {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   getAll: () => api.get('/documents'),
+  getViewUrl: (id) => `${api.defaults.baseURL}/documents/${id}/view`,
+  getDownloadUrl: (id) => `${api.defaults.baseURL}/documents/${id}/download`,
   delete: (id) => api.delete(`/documents/${id}`),
 };
 
@@ -56,8 +58,17 @@ export const userAPI = {
   uploadAvatar:    (formData) => api.put('/users/avatar', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  removeAvatar:    ()         => api.delete('/users/avatar'),
   getBookmarks:    ()         => api.get('/users/bookmarks'),
   toggleBookmark:  (schemeId) => api.post(`/users/bookmarks/${schemeId}`),
+};
+
+// ─── Applications ────────────────────────────────────────────────────────────
+export const applicationAPI = {
+  getAll:       () => api.get('/applications'),
+  upsert:       (data) => api.post('/applications', data),
+  updateStatus: (id, data) => api.put(`/applications/${id}`, data),
+  delete:       (id) => api.delete(`/applications/${id}`),
 };
 
 

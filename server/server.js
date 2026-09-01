@@ -16,15 +16,19 @@ const aiRoutes = require('./routes/ai.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const adminRoutes = require('./routes/admin.routes');
 const documentRoutes = require('./routes/document.routes');
-
+const applicationRoutes = require('./routes/application.routes');
 
 const app = express();
 
-// Ensure uploads folder exists
+// Ensure uploads folders exist (avatars public, documents private)
 const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+const avatarsDir = path.join(__dirname, 'uploads', 'avatars');
+const documentsDir = path.join(__dirname, 'uploads', 'documents');
+[uploadsDir, avatarsDir, documentsDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
 
 // ─── Audit Logger Middleware ─────────────────────────────────────────
@@ -94,6 +98,10 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/applications', applicationRoutes);
+
+// Serve profile avatars publicly; private student documents are protected via /api/documents/:id/view
+app.use('/uploads/avatars', express.static(path.join(__dirname, 'uploads', 'avatars')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 

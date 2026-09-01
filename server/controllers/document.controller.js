@@ -25,11 +25,11 @@ const uploadDocument = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please upload a file' });
     }
 
-    const { category, customName } = req.body;
+    const { category, customName, issueDate, expiryDate } = req.body;
     const documentName = customName || req.file.originalname;
 
-    // Save to Database
-    const filePath = `/uploads/${req.file.filename}`;
+    // Save to Database (private document storage)
+    const filePath = `/uploads/documents/${req.file.filename}`;
     const document = await Document.create({
       user: req.user._id,
       name: documentName,
@@ -38,6 +38,9 @@ const uploadDocument = async (req, res) => {
       filePath,
       fileSize: req.file.size,
       mimeType: req.file.mimetype,
+      status: 'Uploaded',
+      issueDate: issueDate ? new Date(issueDate) : undefined,
+      expiryDate: expiryDate ? new Date(expiryDate) : undefined,
     });
 
     // Check if we can sync to User Profile documentUploads
@@ -66,7 +69,6 @@ const uploadDocument = async (req, res) => {
         profile.documentUploads.marksheet = filePath;
         isSynced = true;
       } else if (category === 'Residence' || lowerName.includes('domicile') || lowerName.includes('residence')) {
-
         profile.documentUploads.domicile = filePath;
         isSynced = true;
       } else if (category === 'Category Certificate' || lowerName.includes('caste') || lowerName.includes('category')) {
@@ -93,6 +95,69 @@ const uploadDocument = async (req, res) => {
   }
 };
 
+// @desc    Securely view private student document
+// @route   GET /api/documents/:id/view
+// @access  Private (Owner or Admin)
+const viewDocument = async (req, res) => {
+  try {
+    const document = await Document.findById(req.params.id);
+    if (!document) {
+      return res.status(404).json({ success: false, message: 'Document not found' });
+    }
+
+    // Authorization check: User must own the document or be Admin
+    if (document.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied to this document' });
+    }
+
+    // Resolve absolute path (handles legacy /uploads/ and new /uploads/documents/)
+    let relPath = document.filePath;
+    if (relPath.startsWith('/')) relPath = relPath.slice(1);
+    const absolutePath = path.join(__dirname, '..', relPath);
+
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ success: false, message: 'File not found on server' });
+    }
+
+    res.setHeader('Content-Type', document.mimeType || 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
+    fs.createReadStream(absolutePath).pipe(res);
+  } catch (error) {
+    console.error('Error viewing document:', error);
+    res.status(500).json({ success: false, message: 'Server error viewing document' });
+  }
+};
+
+// @desc    Securely download private student document
+// @route   GET /api/documents/:id/download
+// @access  Private (Owner or Admin)
+const downloadDocument = async (req, res) => {
+  try {
+    const document = await Document.findById(req.params.id);
+    if (!document) {
+      return res.status(404).json({ success: false, message: 'Document not found' });
+    }
+
+    // Authorization check
+    if (document.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied to this document' });
+    }
+
+    let relPath = document.filePath;
+    if (relPath.startsWith('/')) relPath = relPath.slice(1);
+    const absolutePath = path.join(__dirname, '..', relPath);
+
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ success: false, message: 'File not found on server' });
+    }
+
+    res.download(absolutePath, document.originalName);
+  } catch (error) {
+    console.error('Error downloading document:', error);
+    res.status(500).json({ success: false, message: 'Server error downloading document' });
+  }
+};
+
 // @desc    Delete a document
 // @route   DELETE /api/documents/:id
 // @access  Private
@@ -104,7 +169,9 @@ const deleteDocument = async (req, res) => {
     }
 
     // Delete file from disk
-    const absolutePath = path.join(__dirname, '..', document.filePath);
+    let relPath = document.filePath;
+    if (relPath.startsWith('/')) relPath = relPath.slice(1);
+    const absolutePath = path.join(__dirname, '..', relPath);
     if (fs.existsSync(absolutePath)) {
       try {
         fs.unlinkSync(absolutePath);
@@ -177,5 +244,7 @@ const deleteDocument = async (req, res) => {
 module.exports = {
   getDocuments,
   uploadDocument,
+  viewDocument,
+  downloadDocument,
   deleteDocument,
 };

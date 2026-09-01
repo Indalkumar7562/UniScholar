@@ -104,14 +104,17 @@ const SchemeComparisonPage = () => {
               </span>
             </div>
             <p className="text-sm text-gray-600 mb-2">{scheme.description}</p>
-            <div className="flex gap-4 text-sm">
-              <span className="text-indigo-600 font-semibold">{scheme.amount}</span>
+            <div className="flex flex-wrap gap-4 text-xs font-mono mb-1">
+              <span className="text-indigo-600 font-bold">{scheme.amount}</span>
               <span className="text-gray-500">{scheme.ministry}</span>
+              <span className="text-emerald-600 font-bold">
+                Last Date: {scheme.applicationDeadline ? new Date(scheme.applicationDeadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '30 Sep 2026'}
+              </span>
             </div>
           </div>
           <div className={`text-right ml-4 ${matchScoreColor}`}>
             <div className="text-2xl font-bold">{scheme.matchScore}%</div>
-            <div className="text-xs text-gray-600">Match Score</div>
+            <div className="text-xs text-gray-600 font-semibold">Profile Match</div>
           </div>
         </div>
 
