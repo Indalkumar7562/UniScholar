@@ -66,6 +66,20 @@ const ensureDemoAccounts = async () => {
       await adminGovExists.save();
     }
 
+    let indalAdminExists = await User.findOne({ email: 'indalkumar62073@gmail.com' });
+    if (!indalAdminExists) {
+      await User.create({
+        name: 'Indal Kumar',
+        email: 'indalkumar62073@gmail.com',
+        password: 'admin@123',
+        role: 'admin',
+        isEmailVerified: true
+      });
+    } else if (indalAdminExists.role !== 'admin') {
+      indalAdminExists.role = 'admin';
+      await indalAdminExists.save();
+    }
+
     const partnerExists = await User.findOne({ email: 'partner@demo.com' });
     if (!partnerExists) {
       await User.create({
@@ -179,7 +193,7 @@ const login = async (req, res) => {
     }
 
     // Auto-promote admin emails to admin role if needed
-    if (['admin@uss.gov.in', 'admin@demo.com'].includes(user.email.toLowerCase()) && user.role !== 'admin') {
+    if (['admin@uss.gov.in', 'admin@demo.com', 'indalkumar62073@gmail.com'].includes(user.email.toLowerCase()) && user.role !== 'admin') {
       user.role = 'admin';
       await user.save();
     }
