@@ -47,16 +47,16 @@ export default function AdminDocumentsPage() {
     
     // Prefer direct authenticated view URL if ObjectId present
     if (doc._id && !doc._id.startsWith('mock')) {
-      return `${documentAPI.getViewUrl(doc._id)}`;
+      return `${documentAPI.getViewUrl(doc._id)}${token ? `?token=${token}` : ''}`;
     }
     
     // Fallback to static uploads server path
     const pathStr = doc.filePath || doc.fileUrl || '';
     if (!pathStr) return '';
-    if (pathStr.startsWith('http')) return pathStr;
+    if (pathStr.startsWith('http')) return `${pathStr}${token ? `?token=${token}` : ''}`;
     const cleanPath = pathStr.startsWith('/') ? pathStr : `/${pathStr}`;
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    return `${baseUrl}${cleanPath}`;
+    return `${baseUrl}${cleanPath}${token ? `?token=${token}` : ''}`;
   };
 
   const handleApprove = async (doc) => {
@@ -273,7 +273,28 @@ export default function AdminDocumentsPage() {
             {/* ── REAL UPLOADED FILE PREVIEW CANVAS ───────────────────────── */}
             <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 min-h-[400px] flex items-center justify-center relative overflow-auto">
               
-              {fileLoadError ? (
+              {!selectedDoc.filePath && !selectedDoc.fileUrl ? (
+                /* Fallback for Document Not Uploaded Yet */
+                <div className="text-center space-y-3 py-12 px-4">
+                  <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-amber-400">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-white text-sm">📄 Document Has Not Been Uploaded</h4>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                      The student ({selectedDoc.user?.name || 'Student'}) has not uploaded a file for {selectedDoc.name} yet.
+                    </p>
+                  </div>
+                  <div className="flex justify-center gap-2 pt-1">
+                    <button 
+                      onClick={() => { setRejectModalDoc(selectedDoc); setRejectionReason('Document not uploaded yet by student.'); }}
+                      className="btn px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl"
+                    >
+                      Request Upload from Student →
+                    </button>
+                  </div>
+                </div>
+              ) : fileLoadError ? (
                 /* Fallback for Broken or Unavailable File */
                 <div className="text-center space-y-3 py-12 px-4">
                   <div className="w-12 h-12 rounded-full bg-amber-950 border border-amber-800/50 flex items-center justify-center mx-auto text-amber-400">
