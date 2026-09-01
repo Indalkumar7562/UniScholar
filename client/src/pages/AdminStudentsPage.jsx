@@ -212,17 +212,37 @@ export default function AdminStudentsPage() {
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <button onClick={() => setViewStudent(student)} className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-400" title="View Details">
-                          <Eye className="w-3.5 h-3.5" />
+                        <button 
+                          type="button" 
+                          onClick={(e) => { e.stopPropagation(); setViewStudent(student); }} 
+                          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-400 cursor-pointer transition-all active:scale-95" 
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4 pointer-events-none" />
                         </button>
-                        <button onClick={() => { setEditStudent(student); setActiveEditTab('personal'); }} className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-400" title="Edit Student">
-                          <Edit3 className="w-3.5 h-3.5" />
+                        <button 
+                          type="button" 
+                          onClick={(e) => { e.stopPropagation(); setEditStudent(student); setActiveEditTab('personal'); }} 
+                          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-400 cursor-pointer transition-all active:scale-95" 
+                          title="Edit Student"
+                        >
+                          <Edit3 className="w-4 h-4 pointer-events-none" />
                         </button>
-                        <button onClick={() => handleToggleStatus(student)} className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400" title="Suspend/Activate">
-                          <ShieldCheck className="w-3.5 h-3.5" />
+                        <button 
+                          type="button" 
+                          onClick={(e) => { e.stopPropagation(); handleToggleStatus(student); }} 
+                          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 cursor-pointer transition-all active:scale-95" 
+                          title="Suspend/Activate"
+                        >
+                          <ShieldCheck className="w-4 h-4 pointer-events-none" />
                         </button>
-                        <button onClick={() => setDeleteConfirm(student)} className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-red-400" title="Delete Account">
-                          <Trash2 className="w-3.5 h-3.5" />
+                        <button 
+                          type="button" 
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirm(student); }} 
+                          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-red-400 cursor-pointer transition-all active:scale-95" 
+                          title="Delete Account"
+                        >
+                          <Trash2 className="w-4 h-4 pointer-events-none" />
                         </button>
                       </div>
                     </td>
