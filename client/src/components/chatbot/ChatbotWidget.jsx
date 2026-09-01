@@ -76,7 +76,7 @@ export default function ChatbotWidget() {
         disability: profile.disabilityStatus,
       } : null;
 
-      const { data } = await aiAPI.chat(text.trim(), profileContext);
+      const { data } = await aiAPI.chat(text.trim(), profileContext, messages);
       
       const payload = data.data || data;
       const botResponseText = payload.reply || payload.response || "Sorry, I couldn't process that request right now. Please try again.";

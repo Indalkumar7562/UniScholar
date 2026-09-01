@@ -24,6 +24,52 @@ const formatDeadline = (deadlineDate) => {
   return `${dateStr} (🟢 Open)`;
 };
 
+// ── TEXT NORMALIZATION & TYPO CORRECTION ──────────────────────────────────
+const normalizeText = (text) => {
+  if (!text) return '';
+  let str = text.toLowerCase().trim();
+
+  const typos = [
+    [/\bamtric\b/g, 'matric'],
+    [/\bpostmatric\b/g, 'post matric'],
+    [/\bprematric\b/g, 'pre matric'],
+    [/\bscholrship\b|\bscholrships\b|\bscholership\b|\bscholorship\b|\bscholarhip\b|\bscholarsip\b/g, 'scholarship'],
+    [/\bpragti\b|\bpragathi\b|\bprogati\b/g, 'pragati'],
+    [/\beligiblity\b|\belgible\b|\beligble\b|\beligblity\b/g, 'eligibility'],
+    [/\bdocumnts\b|\bdocumnet\b|\bdocumenst\b|\bdocumets\b/g, 'documents'],
+    [/\bdeadln\b|\bdeadlin\b|\blastdate\b/g, 'deadline'],
+    [/\bincom\b|\bincme\b|\bincoms\b/g, 'income'],
+    [/\bgirls\b|\bgirl\b|\bwomen\b|\bfemale student\b|\bfemale students\b/g, 'female'],
+    [/\bboys\b|\bboy\b|\bmale student\b|\bmale students\b/g, 'male'],
+    [/\b10th pass\b|\bclass 10\b|\b10th class\b/g, '10th'],
+    [/\b12th pass\b|\bclass 12\b|\b12th class\b/g, '12th'],
+    [/\bug\b|\bundergraduate\b|\bbachelor\b|\bbachelors\b/g, 'graduation'],
+    [/\bpg\b|\bpostgraduate\b|\bmaster\b|\bmasters\b/g, 'post graduation'],
+  ];
+
+  typos.forEach(([pattern, replacement]) => {
+    str = str.replace(pattern, replacement);
+  });
+
+  return str;
+};
+
+// ── CONTEXT RESOLUTION FROM HISTORY ───────────────────────────────────────
+const findContextScheme = (history, schemes) => {
+  if (!history || !Array.isArray(history) || history.length === 0) return null;
+
+  for (let i = history.length - 1; i >= 0; i--) {
+    const msgText = (history[i].text || '').toLowerCase();
+    const matched = schemes.find(s => {
+      const nameLower = s.name.toLowerCase();
+      const firstWord = nameLower.split(' ')[0];
+      return msgText.includes(nameLower) || (firstWord.length > 3 && msgText.includes(firstWord));
+    });
+    if (matched) return matched;
+  }
+  return null;
+};
+
 // Simple OCR simulation
 const simulateOCR = (docType, profileName) => {
   const timestamp = Date.now().toString().slice(-4);
@@ -119,7 +165,7 @@ const getRecommendations = async (req, res) => {
   }
 };
 
-// Smart fallback schemes when database returns empty
+// Fallback schemes if MongoDB returns empty array
 const FALLBACK_SCHEMES = [
   {
     name: 'Pragati Scholarship for Girl Students',
@@ -160,6 +206,26 @@ const FALLBACK_SCHEMES = [
       genders: ['All'],
       minPercentage: 80
     }
+  },
+  {
+    name: 'SC/ST Post Matric Scholarship',
+    slug: 'sc-st-post-matric-scholarship',
+    description: 'Financial assistance to SC/ST students pursuing post-matric education (Class 11 onwards, Diploma, Degree, Masters). Covers tuition fees and maintenance allowance.',
+    category: 'SC',
+    ministry: 'Ministry of Social Justice and Empowerment',
+    amount: '₹15,000/year',
+    lastDateToApply: new Date('2026-09-13'),
+    requiredDocuments: ['Caste Certificate', 'Income Certificate', '10th Marksheet', 'Aadhaar Card'],
+    eligibilityCriteria: {
+      minAge: 14,
+      maxAge: 40,
+      maxAnnualIncome: 250000,
+      educationLevels: ['10th Pass', '12th Pass', 'Graduation', 'Post Graduation'],
+      categories: ['SC', 'ST'],
+      states: ['All'],
+      genders: ['All'],
+      minPercentage: 0
+    }
   }
 ];
 
@@ -168,20 +234,20 @@ const FALLBACK_SCHEMES = [
 // @access  Private
 const chatWithAI = async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, history } = req.body;
     if (!message || typeof message !== 'string' || !message.trim()) {
       return res.status(400).json({ success: false, message: 'Message is required' });
     }
 
-    const query = message.trim().toLowerCase();
+    const rawMessage = message.trim();
+    const query = normalizeText(rawMessage);
     const words = query.split(/\s+/);
     
-    // Fetch profile and active schemes
+    // Fetch user profile and active schemes
     let profile = await Profile.findOne({ user: req.user._id });
     let dbSchemes = await Scheme.find({ isActive: true });
     let schemes = dbSchemes.length > 0 ? dbSchemes : FALLBACK_SCHEMES;
 
-    // Create a mock profile if user profile is missing for evaluation
     const evalProfile = profile || {
       age: 19,
       gender: 'Female',
@@ -199,7 +265,7 @@ const chatWithAI = async (req, res) => {
     let reply = '';
     let chips = [];
 
-    // Helper to evaluate document availability for user
+    // Helper for document availability
     const formatRequiredDocs = (docList) => {
       if (!docList || docList.length === 0) return '• Aadhaar Card, Income Certificate';
       const userDocs = evalProfile.documentUploads || {};
@@ -217,30 +283,91 @@ const chatWithAI = async (req, res) => {
       }).join('\n');
     };
 
-    // ── 1. SCHEME SPECIFIC LOOKUP ─────────────────────────────────────────
+    // ── 1. ENTITY & INTENT DETECTION LAYER ─────────────────────────────────
+    let categoryEntity = null;
+    if (/\bsc\b|\bscheduled caste\b/.test(query)) categoryEntity = 'SC';
+    else if (/\bst\b|\bscheduled tribe\b/.test(query)) categoryEntity = 'ST';
+    else if (/\bobc\b|\bother backward\b/.test(query)) categoryEntity = 'OBC';
+    else if (/\bgeneral\b|\bopen\b/.test(query)) categoryEntity = 'General';
+
+    let genderEntity = null;
+    if (query.includes('female')) genderEntity = 'Female';
+    else if (query.includes('male')) genderEntity = 'Male';
+
+    let eduEntity = null;
+    if (query.includes('10th')) eduEntity = '10th Pass';
+    else if (query.includes('12th')) eduEntity = '12th Pass';
+    else if (query.includes('diploma')) eduEntity = 'Diploma';
+    else if (query.includes('graduation')) eduEntity = 'Graduation';
+    else if (query.includes('post graduation')) eduEntity = 'Post Graduation';
+
+    let isDeadline = /\bdeadline\b|\blast date\b|\bclosing\b|\bwhen is\b|\bdate\b/.test(query);
+    let isDocument = /\bdocument\b|\bdocuments\b|\bpaper\b|\bupload\b|\bwhat do i need\b|\bchecklist\b/.test(query);
+    let isAmount = /\bhow much\b|\bamount\b|\bbenefit\b|\bmoney\b|\bpay\b|\bstipend\b/.test(query);
+    let isEligibility = /\beligible\b|\beligibility\b|\bqualify\b|\bam i\b|\bcan i get\b|\bmatching\b|\brecommend\b/.test(query);
+
+    // Resolve context scheme from history for follow-up questions
+    let contextScheme = findContextScheme(history, schemes);
+
+    // Direct scheme keyword search in current query only
     let matchedScheme = schemes.find(s => {
       const nameLower = s.name.toLowerCase();
+      const slugLower = (s.slug || '').toLowerCase();
       if (query.includes('pragati') && nameLower.includes('pragati')) return true;
       if (query.includes('inspire') && nameLower.includes('inspire')) return true;
-      if (query.includes('post-matric') && nameLower.includes('post matric')) return true;
+      if (query.includes('post matric') && (nameLower.includes('post matric') || slugLower.includes('post-matric'))) return true;
+      if (query.includes('pre matric') && (nameLower.includes('pre matric') || slugLower.includes('pre-matric'))) return true;
       if (query.includes('lic') && nameLower.includes('lic')) return true;
       if (query.includes('mahindra') && nameLower.includes('mahindra')) return true;
+      if (query.includes('single girl') && nameLower.includes('single girl')) return true;
       if (query.includes('pm national') && nameLower.includes('pm national')) return true;
-      return query.length > 4 && nameLower.includes(query);
+      return false;
     });
 
-    if (matchedScheme) {
+    // If query didn't specify a scheme name, but is an attribute follow-up (e.g. "documents?", "last date?", "how much?")
+    if (!matchedScheme && contextScheme && (isDeadline || isDocument || isAmount)) {
+      matchedScheme = contextScheme;
+    }
+
+    // ── 3. INTENT PIPELINE EXECUTION ───────────────────────────────────────
+
+    // A. ATTRIBUTE INTENT: DEADLINE FOR SPECIFIC SCHEME OR CONTEXT SCHEME
+    if (isDeadline && matchedScheme) {
+      reply = `📅 **Application Deadline for ${matchedScheme.name}:**\n\n` +
+        `Deadline: **${formatDeadline(matchedScheme.lastDateToApply || matchedScheme.applicationDeadline)}**\n` +
+        `Benefit: ${matchedScheme.amount}`;
+      chips = [`Tell me about ${matchedScheme.name.split(' ')[0]}`, 'What documents do I need?', 'Am I eligible?'];
+    }
+
+    // B. ATTRIBUTE INTENT: DOCUMENTS FOR SPECIFIC SCHEME OR CONTEXT SCHEME
+    else if (isDocument && matchedScheme) {
+      reply = `📄 **Required Documents for ${matchedScheme.name}:**\n\n` +
+        `${formatRequiredDocs(matchedScheme.requiredDocuments)}\n\n` +
+        `💡 Upload missing documents under **Profile → Document Uploads** for AI verification.`;
+      chips = [`Tell me about ${matchedScheme.name.split(' ')[0]}`, 'Am I eligible?', 'When is the last date?'];
+    }
+
+    // C. ATTRIBUTE INTENT: AMOUNT / BENEFIT FOR SPECIFIC SCHEME OR CONTEXT SCHEME
+    else if (isAmount && matchedScheme) {
+      reply = `💰 **Scholarship Benefit for ${matchedScheme.name}:**\n\n` +
+        `• **Amount**: **${matchedScheme.amount}** (${matchedScheme.frequency || 'Yearly'})\n` +
+        `• **Ministry**: ${matchedScheme.ministry || 'Ministry of Education'}\n` +
+        `• **Deadline**: ${formatDeadline(matchedScheme.lastDateToApply)}`;
+      chips = ['Am I eligible?', 'What documents do I need?'];
+    }
+
+    // D. SPECIFIC SCHEME LOOKUP (e.g., "post amtric", "pragati", "inspire")
+    else if (matchedScheme) {
       const analysis = checkSchemeEligibility(evalProfile, matchedScheme);
       const crit = matchedScheme.eligibilityCriteria || {};
 
       reply = `🎓 **${matchedScheme.name}**\n\n` +
         `📋 **Eligibility Rules:**\n` +
-        `• Education: ${(crit.educationLevels || ['12th Pass', 'Graduation']).join(', ')}\n` +
-        `• Gender: ${(crit.genders || ['All']).join(', ')}\n` +
+        `• Education: ${(crit.educationLevels || ['10th Pass', '12th Pass', 'Graduation']).join(', ')}\n` +
         `• Category: ${(crit.categories || ['All']).join(', ')}\n` +
-        `• Max Income Limit: ${formatMoney(crit.maxAnnualIncome || 800000)}\n` +
-        `• Min Score: ${crit.minPercentage || 60}%\n\n` +
-        `💰 **Scholarship Amount:**\n` +
+        `• Gender: ${(crit.genders || ['All']).join(', ')}\n` +
+        `• Max Annual Income: ${formatMoney(crit.maxAnnualIncome || 800000)}\n\n` +
+        `💰 **Scholarship Benefit:**\n` +
         `${matchedScheme.amount} (${matchedScheme.frequency || 'Yearly'})\n\n` +
         `📅 **Application Deadline:**\n` +
         `${formatDeadline(matchedScheme.lastDateToApply || matchedScheme.applicationDeadline)}\n\n` +
@@ -248,14 +375,14 @@ const chatWithAI = async (req, res) => {
         `${formatRequiredDocs(matchedScheme.requiredDocuments)}\n\n` +
         `✅ **Your Eligibility Assessment:**\n` +
         (analysis.eligible 
-          ? `🎉 **You are 100% Eligible!** Your profile (${evalProfile.gender || 'Student'}, ${evalProfile.educationLevel || '12th Pass'}, Income: ${formatMoney(evalProfile.annualFamilyIncome)}) satisfies all scheme requirements.` 
-          : `⚠ **Not Fully Eligible**: ${analysis.rejectionReasons.length > 0 ? analysis.rejectionReasons[0] : 'Some criteria mismatch.'}`);
+          ? `🎉 **You are 100% Eligible!** Your profile (${evalProfile.gender || 'Student'}, ${evalProfile.educationLevel || '12th Pass'}, Income: ${formatMoney(evalProfile.annualFamilyIncome)}) satisfies all scheme rules.` 
+          : `⚠ **Not Fully Eligible**: ${analysis.rejectionReasons.length > 0 ? analysis.rejectionReasons[0] : 'Criteria mismatch.'}`);
 
       chips = ['Which scholarships am I eligible for?', 'What documents do I need?', 'Which scholarships are closing soon?'];
     }
 
-    // ── 2. GENERAL ELIGIBILITY ASSESSMENT ("What scholarships am I eligible for?") ──
-    else if (query.includes('eligible') || query.includes('recommend') || query.includes('check my') || query.includes('qualify')) {
+    // E. GENERAL ELIGIBILITY CHECK ("what scholarships am i eligible for", "check my eligibility")
+    else if (isEligibility || query.includes('what scholarship')) {
       const eligibleSchemes = [];
       const partialSchemes = [];
 
@@ -269,17 +396,17 @@ const chatWithAI = async (req, res) => {
       });
 
       if (eligibleSchemes.length > 0) {
-        reply = `Based on your profile (**${evalProfile.educationLevel || '12th Pass'}**, **${evalProfile.gender || 'Female'}**, Income: **${formatMoney(evalProfile.annualFamilyIncome)}**), you qualify for **${eligibleSchemes.length}** active scholarships:\n\n` +
-          eligibleSchemes.map((item, idx) => 
+        reply = `Based on your profile (**${evalProfile.educationLevel || '12th Pass'}**, **${evalProfile.category || 'General'}**, **${evalProfile.gender || 'Female'}**, Income: **${formatMoney(evalProfile.annualFamilyIncome)}**), you qualify for **${eligibleSchemes.length}** scholarships:\n\n` +
+          eligibleSchemes.slice(0, 5).map((item, idx) => 
             `**${idx + 1}. ${item.scheme.name}**\n` +
             `   💰 Benefit: ${item.scheme.amount}\n` +
             `   📅 Deadline: ${formatDeadline(item.scheme.lastDateToApply)}\n` +
             `   ⭐ Match Score: ${item.score}%`
           ).join('\n\n') +
           `\n\nAsk me "Tell me about [Scheme Name]" for detailed criteria!`;
-        chips = eligibleSchemes.map(i => `Tell me about ${i.scheme.name.split(' ')[0]}`);
+        chips = eligibleSchemes.slice(0, 3).map(i => `Tell me about ${i.scheme.name.split(' ')[0]}`);
       } else {
-        reply = `I analyzed **${schemes.length}** active schemes. While you don't have a 100% match yet, here are top high-potential schemes:\n\n` +
+        reply = `I analyzed **${schemes.length}** active schemes. While you don't have a 100% match yet, here are top matching schemes:\n\n` +
           partialSchemes.slice(0, 3).map((item, idx) => 
             `**${idx + 1}. ${item.scheme.name}** (${item.score}% match)\n` +
             `   ⚠ Gap: ${item.reasons[0] || 'Criteria update required'}`
@@ -289,59 +416,30 @@ const chatWithAI = async (req, res) => {
       }
     }
 
-    // ── 3. DOCUMENT QUESTIONS ("What documents do I need?") ──────────────
-    else if (query.includes('document') || query.includes('upload') || query.includes('paper') || query.includes('missing')) {
+    // F. GENERAL DOCUMENT CHECKLIST ("documents?")
+    else if (isDocument) {
       const userDocs = evalProfile.documentUploads || {};
       const uploadedCount = Object.values(userDocs).filter(Boolean).length;
 
-      reply = `📄 **Document Status Checklist** (${uploadedCount}/6 Uploaded)\n\n` +
+      reply = `📄 **Your Document Wallet Status** (${uploadedCount}/6 Uploaded)\n\n` +
         `• **Income Certificate**: ${userDocs.incomeCertificate ? '✓ Available & Verified' : '⚠ Missing (Required for income limit verification)'}\n` +
         `• **10th Marksheet**: ${userDocs.marksheet10th ? '✓ Available & Verified' : '⚠ Missing (Required for academic proof)'}\n` +
         `• **12th Marksheet**: ${userDocs.marksheet12th ? '✓ Available & Verified' : '⚠ Missing'}\n` +
         `• **Aadhaar Card**: ${userDocs.aadhaar ? '✓ Available & Verified' : '⚠ Missing'}\n` +
         `• **Domicile Certificate**: ${userDocs.domicile ? '✓ Available & Verified' : '⚠ Missing'}\n` +
         `• **Caste Certificate**: ${userDocs.casteCertificate ? '✓ Available & Verified' : '⚠ Optional/Missing'}\n\n` +
-        `💡 Upload missing documents in your **Profile → Document Uploads** section for AI OCR autofill and verification.`;
+        `💡 Upload missing documents under **Profile → Document Uploads** for AI verification.`;
 
       chips = ['Which scholarships am I eligible for?', 'What are the rules for Pragati scholarship?'];
     }
 
-    // ── 4. GIRL / FEMALE SCHOLARSHIPS ─────────────────────────────────────
-    else if (query.includes('girl') || query.includes('female') || query.includes('women')) {
-      const girlSchemes = schemes.filter(s => {
-        const g = s.eligibilityCriteria?.genders || [];
-        return g.includes('Female') || s.name.toLowerCase().includes('girl');
-      });
-
-      reply = `👩 **Scholarships for Female Students** (${girlSchemes.length} Found)\n\n` +
-        girlSchemes.map((s, idx) => 
-          `**${idx + 1}. ${s.name}**\n` +
-          `   💰 Amount: ${s.amount}\n` +
-          `   📅 Deadline: ${formatDeadline(s.lastDateToApply)}\n` +
-          `   📋 Max Income: ${formatMoney(s.eligibilityCriteria?.maxAnnualIncome || 800000)}`
-        ).join('\n\n');
-
-      chips = ['What are the rules for Pragati scholarship?', 'What documents do I need?'];
-    }
-
-    // ── 5. CLOSING SOON / DEADLINE QUERIES ────────────────────────────────
-    else if (query.includes('closing') || query.includes('date') || query.includes('deadline') || query.includes('last date')) {
-      reply = `📅 **Upcoming Scholarship Deadlines**\n\n` +
-        schemes.slice(0, 4).map((s, idx) => 
-          `**${idx + 1}. ${s.name}**\n` +
-          `   📅 Application Deadline: ${formatDeadline(s.lastDateToApply || s.applicationDeadline)}\n` +
-          `   💰 Benefit: ${s.amount}`
-        ).join('\n\n');
-
-      chips = ['Which scholarships am I eligible for?', 'What documents do I need?'];
-    }
-
-    // ── 6. INCOME LIMIT QUERIES ───────────────────────────────────────────
-    else if (query.includes('income') || query.includes('lakh') || query.includes('bpl')) {
+    // G. INCOME LIMIT / INCOME QUERY
+    else if (query.includes('income') || query.includes('limit') || query.includes('bpl')) {
       const userInc = evalProfile.annualFamilyIncome || 180000;
       const incomeSchemes = schemes.filter(s => (s.eligibilityCriteria?.maxAnnualIncome || 9999999) >= userInc);
 
-      reply = `💰 **Scholarships Matching Family Income (${formatMoney(userInc)})**\n\n` +
+      reply = `💰 **Scholarship Income Limits & Guidelines**\n\n` +
+        `Your Profile Family Income: **${formatMoney(userInc)}**\n\n` +
         `Found **${incomeSchemes.length}** schemes with max income limits supporting your household:\n\n` +
         incomeSchemes.slice(0, 4).map((s, idx) => 
           `• **${s.name}** — Amount: ${s.amount} (Max Income Limit: ${formatMoney(s.eligibilityCriteria?.maxAnnualIncome)})`
@@ -350,38 +448,84 @@ const chatWithAI = async (req, res) => {
       chips = ['Which scholarships am I eligible for?', 'What documents do I need?'];
     }
 
-    // ── 7. GREETING & HELLO ───────────────────────────────────────────────
+    // H. CATEGORY / CASTE FILTER ("scholarship for sc", "scholarship for obc")
+    else if (categoryEntity) {
+      const catSchemes = schemes.filter(s => {
+        const cats = s.eligibilityCriteria?.categories || [];
+        return cats.includes(categoryEntity) || cats.includes('All') || s.category === categoryEntity;
+      });
+
+      reply = `🎓 **Scholarships for ${categoryEntity} Category** (${catSchemes.length} Found)\n\n` +
+        catSchemes.slice(0, 4).map((s, idx) => 
+          `**${idx + 1}. ${s.name}**\n` +
+          `   💰 Benefit: ${s.amount}\n` +
+          `   📅 Deadline: ${formatDeadline(s.lastDateToApply)}\n` +
+          `   📋 Max Income: ${formatMoney(s.eligibilityCriteria?.maxAnnualIncome || 250000)}`
+        ).join('\n\n');
+
+      chips = ['Which scholarships am I eligible for?', 'What documents do I need?'];
+    }
+
+    // I. GENDER FILTER ("scholarship for girls", "female")
+    else if (genderEntity === 'Female') {
+      const girlSchemes = schemes.filter(s => {
+        const g = s.eligibilityCriteria?.genders || [];
+        return g.includes('Female') || s.name.toLowerCase().includes('girl');
+      });
+
+      reply = `👩 **Scholarships for Female Students** (${girlSchemes.length} Found)\n\n` +
+        girlSchemes.slice(0, 4).map((s, idx) => 
+          `**${idx + 1}. ${s.name}**\n` +
+          `   💰 Benefit: ${s.amount}\n` +
+          `   📅 Deadline: ${formatDeadline(s.lastDateToApply)}\n` +
+          `   📋 Max Income: ${formatMoney(s.eligibilityCriteria?.maxAnnualIncome || 800000)}`
+        ).join('\n\n');
+
+      chips = ['What are the rules for Pragati scholarship?', 'What documents do I need?'];
+    }
+
+    // J. EDUCATION LEVEL FILTER ("scholarship for 12th students", "diploma", "graduation")
+    else if (eduEntity) {
+      const eduSchemes = schemes.filter(s => {
+        const edus = s.eligibilityCriteria?.educationLevels || [];
+        return edus.includes(eduEntity) || edus.includes('All');
+      });
+
+      reply = `🎓 **Scholarships for ${eduEntity} Students** (${eduSchemes.length} Found)\n\n` +
+        eduSchemes.slice(0, 4).map((s, idx) => 
+          `**${idx + 1}. ${s.name}**\n` +
+          `   💰 Benefit: ${s.amount}\n` +
+          `   📅 Deadline: ${formatDeadline(s.lastDateToApply)}\n` +
+          `   📋 Max Income: ${formatMoney(s.eligibilityCriteria?.maxAnnualIncome || 800000)}`
+        ).join('\n\n');
+
+      chips = ['Which scholarships am I eligible for?', 'What documents do I need?'];
+    }
+
+    // K. DEADLINE / CLOSING SOON FILTER
+    else if (isDeadline) {
+      reply = `📅 **Upcoming Scholarship Application Deadlines**\n\n` +
+        schemes.slice(0, 4).map((s, idx) => 
+          `**${idx + 1}. ${s.name}**\n` +
+          `   📅 Deadline: ${formatDeadline(s.lastDateToApply || s.applicationDeadline)}\n` +
+          `   💰 Benefit: ${s.amount}`
+        ).join('\n\n');
+
+      chips = ['Which scholarships am I eligible for?', 'What documents do I need?'];
+    }
+
+    // L. GREETINGS & HELLO
     else if (words.some(w => ['hi', 'hello', 'hey', 'greetings'].includes(w))) {
-      reply = `Hello ${profile?.fullName ? profile.fullName.split(' ')[0] : 'Student'}! 🎓\n\nI am your **Welfare AI Assistant**. I can help you find eligible scholarships, check scheme rules, calculate match percentages, verify required documents, and track deadlines.\n\nHow can I assist your education journey today?`;
+      reply = `Hello ${profile?.fullName ? profile.fullName.split(' ')[0] : 'Student'}! 🎓\n\nHow can I assist your scholarship search today? Ask about Post-Matric schemes, Pragati, INSPIRE, document requirements, or your eligibility!`;
       chips = ['Which scholarships am I eligible for?', 'What are the rules for Pragati scholarship?', 'What documents do I need?'];
     }
 
-    // ── 8. DEFAULT SEARCH / MATCH FALLBACK ────────────────────────────────
+    // M. CLARIFICATION & UNKNOWN FALLBACK
     else {
-      const keywordMatches = schemes.filter(s => 
-        s.name.toLowerCase().includes(query) || 
-        s.description.toLowerCase().includes(query) ||
-        (s.tags && s.tags.some(t => t.toLowerCase().includes(query)))
-      );
-
-      if (keywordMatches.length > 0) {
-        reply = `I found **${keywordMatches.length}** matching scheme(s) for "${message}":\n\n` +
-          keywordMatches.map((m, idx) => 
-            `**${idx + 1}. ${m.name}**\n` +
-            `   💰 Benefit: ${m.amount}\n` +
-            `   📅 Deadline: ${formatDeadline(m.lastDateToApply)}\n` +
-            `   📋 Ministry: ${m.ministry || 'Ministry of Education'}`
-          ).join('\n\n');
-        chips = keywordMatches.map(m => `Tell me about ${m.name.split(' ')[0]}`);
-      } else {
-        reply = `I understand you are asking about "${message}".\n\n` +
-          `As your **Welfare AI Assistant**, I can help you check eligible scholarships, document requirements, and deadlines for schemes like **Pragati Girl Students**, **INSPIRE**, **SC/ST Post-Matric**, and **PM National Scholarship**.\n\n` +
-          `Try asking one of the options below!`;
-        chips = ['Which scholarships am I eligible for?', 'What are the rules for Pragati scholarship?', 'What documents do I need?'];
-      }
+      reply = `I can help with scholarship details, Post-Matric schemes, document checklists, and application deadlines.\n\nAre you looking for Post-Matric scholarships, Pragati, or checking your profile eligibility?`;
+      chips = ['Post-Matric scholarships', 'Which scholarships am I eligible for?', 'What documents do I need?'];
     }
 
-    // Return BOTH `reply` AND `response` keys to guarantee 100% frontend API compatibility!
     res.json({
       success: true,
       data: {

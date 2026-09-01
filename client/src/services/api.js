@@ -90,7 +90,7 @@ export const eligibilityAPI = {
 export const aiAPI = {
   verifyDocument: (documentType, fileUrl) => api.post('/ai/verify-document', { documentType, fileUrl }),
   getRecommendations: () => api.get('/ai/recommendations'),
-  chat: (message, context) => api.post('/ai/chat', { message, context }),
+  chat: (message, context, history) => api.post('/ai/chat', { message, context, history }),
 };
 
 // ─── Notifications Endpoints ──────────────────────────────────────────────────
