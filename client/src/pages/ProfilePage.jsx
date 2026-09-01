@@ -4,6 +4,7 @@ import { userAPI, aiAPI, documentAPI } from '../services/api';
 import { t } from '../utils/translate';
 import { SectionHeader, Avatar, ProgressBar, Spinner } from '../components/ui/index.jsx';
 import { STATES_AND_DISTRICTS, STATES_LIST } from '../data/indiaLocations';
+import AcademicDetailsSection from '../components/profile/AcademicDetailsSection.jsx';
 
 import { 
   Save, User, BookOpen, IndianRupee, FileText, Upload, 
@@ -149,10 +150,15 @@ export default function ProfilePage() {
 
   const missingFieldsList = getMissingFields();
 
+  const [academicDetails, setAcademicDetails] = useState({});
+
   useEffect(() => {
     if (profile) {
       const initialDob = profile.dob || '';
       const calculated = calculateAge(initialDob);
+      if (profile.academicDetails) {
+        setAcademicDetails(profile.academicDetails);
+      }
       setForm({
         fullName: profile.fullName || user?.name || '',
         dob: initialDob,
@@ -284,6 +290,7 @@ export default function ProfilePage() {
     try {
       const payload = {
         ...form,
+        academicDetails,
         age: Number(form.age) || calculateAge(form.dob) || 18,
         annualFamilyIncome: Number(form.annualFamilyIncome) || 0,
         cgpaOrPercentage: Number(form.cgpaOrPercentage) || 0,
@@ -292,7 +299,14 @@ export default function ProfilePage() {
       const { data } = await userAPI.saveProfile(payload);
       updateProfile(data.profile);
       setSaveSuccessMsg(true);
-      toast.success('✓ Profile saved successfully! Your personal details have been updated. You can now proceed to Academic Details.', { duration: 4000 });
+
+      let successText = '✓ Profile saved successfully!';
+      if (activeTab === 'academic') {
+        successText = '✓ Academic details saved successfully! Your education history has been updated. You can now proceed to Financial Details.';
+      } else if (activeTab === 'personal') {
+        successText = '✓ Profile saved successfully! Your personal details have been updated. You can now proceed to Academic Details.';
+      }
+      toast.success(successText, { duration: 4000 });
       await fetchProfile();
       setTimeout(() => {
         setSaveSuccessMsg(false);
@@ -753,51 +767,12 @@ export default function ProfilePage() {
 
         {/* Tab 2: Academic Details */}
         {activeTab === 'academic' && (
-          <div className="space-y-4 animate-fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="label">Current Education Level *</label>
-                <select 
-                  className="select" required
-                  value={form.educationLevel} onChange={(e) => updateField('educationLevel', e.target.value)}
-                >
-                  <option value="">Select level</option>
-                  {EDU_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="label">Education Stream / Branch *</label>
-                <select 
-                  className="select" required
-                  value={form.stream} onChange={(e) => updateField('stream', e.target.value)}
-                >
-                  <option value="">Select stream</option>
-                  {STREAMS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="label">College/School Name *</label>
-                <input 
-                  type="text" className="input" placeholder="e.g. St. Xavier College" required
-                  value={form.collegeName} onChange={(e) => updateField('collegeName', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="label">Current Year / Semester</label>
-                <input 
-                  type="text" className="input" placeholder="e.g. 1st Year / Sem II"
-                  value={form.currentYearOrSemester} onChange={(e) => updateField('currentYearOrSemester', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="label">Academic Percentage / CGPA *</label>
-                <input 
-                  type="number" className="input" placeholder="e.g. 85" min="0" max="100" required
-                  value={form.cgpaOrPercentage} onChange={(e) => updateField('cgpaOrPercentage', e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
+          <AcademicDetailsSection 
+            form={form}
+            updateField={updateField}
+            academicDetails={academicDetails}
+            setAcademicDetails={setAcademicDetails}
+          />
         )}
 
         {/* Tab 3: Social & Financial Details */}

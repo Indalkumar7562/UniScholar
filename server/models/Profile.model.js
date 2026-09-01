@@ -87,6 +87,10 @@ const profileSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    academicDetails: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
 
     // Profession Details
     profession: {
