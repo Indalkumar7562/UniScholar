@@ -92,24 +92,6 @@ export default function ProfilePage() {
     }
   };
 
-  const getMissingFields = () => {
-    const missing = [];
-    if (!form.fullName) missing.push('Full Name');
-    if (!form.mobileNumber) missing.push('Mobile Number');
-    if (!form.age) missing.push('Age');
-    if (!form.state) missing.push('Residency State');
-    if (!form.educationLevel) missing.push('Education Level');
-    if (!form.stream) missing.push('Education Stream');
-    if (!form.cgpaOrPercentage) missing.push('Academic Score / Marks %');
-    if (form.annualFamilyIncome === '') missing.push('Annual Family Income');
-    if (!form.documentUploads?.incomeCertificate) missing.push('Income Certificate Document');
-    if (!form.documentUploads?.marksheet && !form.documentUploads?.marksheet12th && !form.documentUploads?.marksheet10th) missing.push('Marksheet Document');
-    return missing;
-  };
-
-  const missingFieldsList = getMissingFields();
-
-
   const [form, setForm] = useState({
     fullName: '',
     age: '',
@@ -142,6 +124,23 @@ export default function ProfilePage() {
       disabilityCertificate: ''
     }
   });
+
+  const getMissingFields = () => {
+    const missing = [];
+    if (!form.fullName) missing.push('Full Name');
+    if (!form.mobileNumber) missing.push('Mobile Number');
+    if (!form.age) missing.push('Age');
+    if (!form.state) missing.push('Residency State');
+    if (!form.educationLevel) missing.push('Education Level');
+    if (!form.stream) missing.push('Education Stream');
+    if (!form.cgpaOrPercentage) missing.push('Academic Score / Marks %');
+    if (form.annualFamilyIncome === '') missing.push('Annual Family Income');
+    if (!form.documentUploads?.incomeCertificate) missing.push('Income Certificate Document');
+    if (!form.documentUploads?.marksheet && !form.documentUploads?.marksheet12th && !form.documentUploads?.marksheet10th) missing.push('Marksheet Document');
+    return missing;
+  };
+
+  const missingFieldsList = getMissingFields();
 
   useEffect(() => {
     if (profile) {

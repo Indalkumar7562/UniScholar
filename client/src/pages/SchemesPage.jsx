@@ -15,6 +15,8 @@ export default function SchemesPage() {
   const [category, setCategory] = useState('All');
   const [sort, setSort] = useState('deadline');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [pagination, setPagination] = useState({});
+  const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
     setLoading(true);
