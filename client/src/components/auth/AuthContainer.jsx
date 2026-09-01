@@ -4,6 +4,7 @@ import { Eye, EyeOff, GraduationCap, Mail, Lock, User, Phone, Check, AlertTriang
 import { useAuth } from '../../context/AuthContext';
 import { Spinner } from '../ui/index.jsx';
 import toast from 'react-hot-toast';
+import { showToast } from '../../utils/toastQueue';
 
 export default function AuthContainer({ initialTab = 'login' }) {
   const { login, register } = useAuth();
@@ -120,7 +121,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
         password: regForm.password
       });
 
-      toast.success('✓ Account created successfully! Please complete your profile.');
+      showToast('Account created successfully! Please complete your profile.', 'success');
       navigate('/profile');
     } catch (err) {
       const msg = err.response?.data?.message || 'Registration failed. Email may already be registered.';
@@ -131,11 +132,11 @@ export default function AuthContainer({ initialTab = 'login' }) {
   };
 
   const handleGoogleAuth = (mode) => {
-    toast.error(`Google Sign-In integration ready. Connect CLIENT_ID to enable Google ${mode}.`, { duration: 4000 });
+    showToast(`Google Sign-In integration ready for ${mode}.`, 'info');
   };
 
   const handleForgotPassword = () => {
-    toast.success('Password reset link sent to your registered email if account exists.', { duration: 4000 });
+    showToast('Password reset link sent to your registered email.', 'success');
   };
 
   return (

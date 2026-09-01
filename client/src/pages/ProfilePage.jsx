@@ -13,6 +13,7 @@ import {
   Edit3, Eye, AlertTriangle, ArrowRight, ShieldCheck, MapPin, Briefcase, Award, GraduationCap
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { showToast } from '../utils/toastQueue';
 
 const EDU_LEVELS = ['Below 10th', '10th Pass', '12th Pass', 'Diploma', 'Graduation', 'Post Graduation', 'PhD'];
 const STREAMS     = ['Science', 'Commerce', 'Arts', 'Diploma', 'Engineering', 'Medical', 'ITI', 'Other', 'Not Applicable'];
@@ -64,12 +65,12 @@ export default function ProfilePage() {
 
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
     if (!allowedTypes.includes(selectedFile.type)) {
-      toast.error('Please upload a JPG, JPEG, PNG, or WebP image under 2 MB.');
+      showToast('Please upload a JPG, JPEG, PNG, or WebP image under 2 MB.', 'error');
       return;
     }
 
     if (selectedFile.size > 2 * 1024 * 1024) {
-      toast.error('Please upload a JPG, JPEG, PNG, or WebP image under 2 MB.');
+      showToast('Please upload a JPG, JPEG, PNG, or WebP image under 2 MB.', 'error');
       return;
     }
 
@@ -83,30 +84,28 @@ export default function ProfilePage() {
     const formData = new FormData();
     formData.append('avatar', selectedFile);
 
-    const toastId = toast.loading('Uploading profile picture...');
     try {
       const { data } = await userAPI.uploadAvatar(formData);
       updateUser(data.user);
       setPreviewImage(null);
-      toast.success('Profile picture updated successfully!', { id: toastId });
+      showToast('Profile picture updated successfully.', 'success');
     } catch (err) {
       console.error(err);
       setPreviewImage(null);
-      toast.error(err.response?.data?.message || 'Failed to upload profile picture', { id: toastId });
+      showToast(err.response?.data?.message || 'Failed to upload profile picture.', 'error');
     }
   };
 
   const handleRemoveAvatar = async () => {
     if (!window.confirm('Are you sure you want to remove your profile picture?')) return;
-    const toastId = toast.loading('Removing profile picture...');
     try {
       const { data } = await userAPI.removeAvatar();
       updateUser(data.user);
       setPreviewImage(null);
-      toast.success('Profile picture removed successfully!', { id: toastId });
+      showToast('Profile picture removed successfully.', 'success');
     } catch (err) {
       console.error(err);
-      toast.error('Failed to remove profile picture', { id: toastId });
+      showToast('Failed to remove profile picture.', 'error');
     }
   };
 
@@ -286,31 +285,31 @@ export default function ProfilePage() {
 
     // Validation
     if (!form.fullName || form.fullName.trim().length < 2) {
-      toast.error('Please enter a valid full name.');
+      showToast('Please enter a valid full name.', 'error');
       setActiveTab('personal');
       setIsEditingPersonal(true);
       return;
     }
     if (!form.mobileNumber || !/^\+?\d{10,12}$/.test(form.mobileNumber.replace(/\s+/g, ''))) {
-      toast.error('Please enter a valid 10-digit mobile number.');
+      showToast('Please enter a valid 10-digit mobile number.', 'error');
       setActiveTab('personal');
       setIsEditingPersonal(true);
       return;
     }
     if (!form.dob) {
-      toast.error('Please select your Date of Birth.');
+      showToast('Please select your Date of Birth.', 'error');
       setActiveTab('personal');
       setIsEditingPersonal(true);
       return;
     }
     if (!form.state) {
-      toast.error('Please select your Domicile State.');
+      showToast('Please select your Domicile State.', 'error');
       setActiveTab('personal');
       setIsEditingPersonal(true);
       return;
     }
     if (!form.district) {
-      toast.error('Please select your District.');
+      showToast('Please select your District.', 'error');
       setActiveTab('personal');
       setIsEditingPersonal(true);
       return;
@@ -332,22 +331,22 @@ export default function ProfilePage() {
       setIsEditingPersonal(false);
       setIsEditingFinancial(false);
 
-      let successText = '✓ Profile saved successfully!';
+      let successText = 'Profile saved successfully.';
       if (activeTab === 'academic') {
-        successText = '✓ Academic details saved successfully! Your education history has been updated. You can now proceed to Financial Details.';
+        successText = 'Academic details saved successfully. You can now proceed to Financial Details.';
       } else if (activeTab === 'personal') {
-        successText = '✓ Profile saved successfully! Your personal details have been updated. You can now proceed to Academic Details.';
+        successText = 'Personal details saved successfully. You can now proceed to Academic Details.';
       } else if (activeTab === 'financial') {
-        successText = '✓ Financial details saved successfully! Your eligibility details have been updated. You can now proceed to Documents.';
+        successText = 'Financial details saved successfully. You can now proceed to Documents.';
       }
-      toast.success(successText, { duration: 4000 });
+      showToast(successText, 'success');
       await fetchProfile();
       setTimeout(() => {
         setSaveSuccessMsg(false);
       }, 4000);
     } catch (err) {
       setSaveSuccessMsg(false);
-      toast.error(err.response?.data?.message || '⚠ Unable to save your profile. Please try again.');
+      showToast(err.response?.data?.message || 'Unable to save your profile. Please try again.', 'error');
     } finally {
       setSaving(false);
     }
@@ -361,33 +360,31 @@ export default function ProfilePage() {
     setOcrLoading(prev => ({ ...prev, [docType]: true }));
 
     let category = 'Other';
-    if (docType === 'aadhaar') category = 'Identity';
-    else if (docType === 'incomeCertificate') category = 'Income';
-    else if (['marksheet', 'marksheet10th', 'marksheet12th', 'marksheetCollege', 'marksheetOther'].includes(docType)) category = 'Academic';
-    else if (docType === 'domicile') category = 'Residence';
-    else if (docType === 'casteCertificate') category = 'Category Certificate';
-
-    let customName = `${category} Document`;
-    if (docType === 'marksheet10th') customName = '10th Marksheet';
-    else if (docType === 'marksheet12th') customName = '12th Marksheet';
+    let docLabel = 'Document';
+    if (docType === 'aadhaar') { category = 'Identity'; docLabel = 'Aadhaar Card'; }
+    else if (docType === 'incomeCertificate') { category = 'Income'; docLabel = 'Income Certificate'; }
+    else if (docType === 'marksheet10th') { category = 'Academic'; docLabel = '10th Marksheet'; }
+    else if (docType === 'marksheet12th') { category = 'Academic'; docLabel = '12th Marksheet'; }
+    else if (docType === 'domicile') { category = 'Residence'; docLabel = 'Domicile Certificate'; }
+    else if (docType === 'casteCertificate') { category = 'Category Certificate'; docLabel = 'Caste Certificate'; }
 
     const formData = new FormData();
     formData.append('file', selectedFile);
     formData.append('category', category);
-    formData.append('customName', customName);
+    formData.append('customName', docLabel);
 
     try {
       const { data: uploadData } = await documentAPI.upload(formData);
       const filePath = uploadData.document.filePath;
-      toast.success(`${selectedFile.name} uploaded successfully!`);
+      showToast(`${docLabel} uploaded successfully.`, 'success');
 
       const { data: ocrData } = await aiAPI.verifyDocument(docType, filePath);
       setOcrResults(prev => ({ ...prev, [docType]: ocrData }));
-      toast.success(`${category} details verified & synchronized!`);
+      showToast(`${docLabel} details verified successfully.`, 'success');
 
-      if (docType === 'incomeCertificate') {
+      if (docType === 'incomeCertificate' && ocrData?.extractedData?.annualFamilyIncome) {
         updateField('annualFamilyIncome', ocrData.extractedData.annualFamilyIncome);
-      } else if (['marksheet', 'marksheet10th', 'marksheet12th'].includes(docType)) {
+      } else if (['marksheet', 'marksheet10th', 'marksheet12th'].includes(docType) && ocrData?.extractedData?.cgpaOrPercentage) {
         updateField('cgpaOrPercentage', ocrData.extractedData.cgpaOrPercentage);
       }
 
@@ -401,7 +398,7 @@ export default function ProfilePage() {
 
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'File upload or verification failed');
+      showToast('Document upload failed. Please try again.', 'error');
     } finally {
       setOcrLoading(prev => ({ ...prev, [docType]: false }));
     }

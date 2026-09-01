@@ -5,6 +5,7 @@ import { Avatar } from '../ui/index.jsx';
 import { notificationAPI } from '../../services/api';
 import { t } from '../../utils/translate';
 import toast from 'react-hot-toast';
+import { showToast } from '../../utils/toastQueue';
 import {
   LayoutDashboard, User, CheckCircle, BookOpen,
   Trophy, LogOut, Menu, X, Moon, Sun, GraduationCap,
@@ -71,10 +72,10 @@ export default function DashboardLayout({ children }) {
     try {
       await notificationAPI.markAllRead();
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      toast.success(t('markAllRead', language));
+      showToast(t('markAllRead', language), 'success');
       setNotifOpen(false);
     } catch (err) {
-      toast.error('Failed to update notifications');
+      showToast('Failed to update notifications', 'error');
     }
   };
 

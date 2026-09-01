@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI, userAPI } from '../services/api';
-import toast from 'react-hot-toast';
+import { showToast } from '../utils/toastQueue';
 
 const AuthContext = createContext(null);
 
@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('uss_user', JSON.stringify(data.user));
     setUser(data.user);
     await fetchProfile();
-    toast.success(data.message || 'Welcome back!');
+    showToast(data.message || 'Welcome back!', 'success');
     return data;
   };
 
@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('uss_user', JSON.stringify(data.user));
     setUser(data.user);
     await fetchProfile();
-    toast.success(data.message || 'Logged in with Google!');
+    showToast(data.message || 'Logged in with Google!', 'success');
     return data;
   };
 
@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('uss_user', JSON.stringify(data.user));
     setUser(data.user);
     await fetchProfile();
-    toast.success(data.message || 'Account created!');
+    showToast(data.message || 'Account created!', 'success');
     return data;
   };
 
@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('uss_user');
     setUser(null);
     setProfile(null);
-    if (showMsg) toast.success('Signed out successfully');
+    if (showMsg) showToast('Signed out successfully', 'success');
   }, []);
 
   const updateProfile = (p) => setProfile(p);
