@@ -1069,7 +1069,7 @@ export default function ProfilePage() {
               className="btn btn-primary px-6 py-2.5 flex items-center gap-2 font-bold text-xs shadow-lg shadow-primary-600/20"
             >
               {saving ? <Spinner /> : <Save className="w-4 h-4" />}
-              {saving ? 'Saving Profile...' : 'Save Profile & Verify'}
+              {saving ? 'Saving...' : 'Save'}
             </button>
 
             {activeTab !== 'documents' ? (
