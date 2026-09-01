@@ -167,41 +167,42 @@ export default function AuthContainer({ initialTab = 'login' }) {
       </div>
 
       {/* ── 3. MAIN SIDE-BY-SIDE AUTH CONTAINER ──────────────────────────── */}
-      <main className="w-full max-w-6xl mx-auto my-auto my-4">
-        <div className="bg-slate-900/90 border border-slate-800/80 rounded-3xl shadow-2xl backdrop-blur-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-800/80">
+      <main className="w-full max-w-[1180px] mx-auto my-auto py-2">
+        <div className="bg-[#0A1124] border border-slate-800/80 rounded-[24px] shadow-2xl backdrop-blur-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2 relative">
           
+          {/* Single Subtle Vertical Divider (Desktop) */}
+          <div className="hidden lg:block absolute left-1/2 top-10 bottom-10 w-[1px] bg-slate-800/80 -translate-x-1/2 pointer-events-none z-10" />
+
           {/* ──────────────────────────────────────────────────────────────────
               LEFT PANEL — LOGIN FORM
              ────────────────────────────────────────────────────────────────── */}
-          <div className={`p-6 md:p-10 flex flex-col justify-between transition-all duration-300 ${
-            activeTab === 'login'
-              ? 'ring-2 ring-primary-500/40 bg-gradient-to-b from-primary-950/20 via-transparent to-transparent'
-              : 'opacity-90 lg:opacity-75'
+          <div className={`p-8 lg:p-10 flex flex-col justify-between transition-colors duration-300 ${
+            activeTab === 'login' ? 'bg-[#0D162D]/60' : 'bg-transparent opacity-90 lg:opacity-80'
           } ${activeTab !== 'login' ? 'hidden lg:flex' : 'flex'}`}>
             
             <div className="space-y-5">
               
-              {/* Header */}
+              {/* Top Label & Heading */}
               <div>
-                <div className="flex items-center gap-2 text-xs font-bold text-primary-400 uppercase tracking-wider mb-1">
-                  <span>🔐 Login</span>
+                <div className="text-xs font-extrabold text-primary-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                  <span>🔐 LOGIN</span>
                 </div>
-                <h2 className="text-xl md:text-2xl font-black text-white">Welcome Back 👋</h2>
-                <p className="text-xs text-slate-400 mt-1">Sign in to your UniScholar account</p>
+                <h2 className="text-2xl lg:text-3xl font-black text-white tracking-tight">Welcome Back 👋</h2>
+                <p className="text-xs text-slate-400 mt-1 font-medium">Sign in to your UniScholar account</p>
               </div>
 
               {/* Demo Account Helper Box */}
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 flex items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <div className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-amber-400 flex items-center gap-1">
                     <span>🧪 Demo Account</span>
                   </div>
-                  <div className="text-[11px] font-mono text-amber-300/80">student@demo.com • demo@123</div>
+                  <div className="text-xs font-mono text-amber-200/90 font-medium truncate mt-0.5">student@demo.com • demo@123</div>
                 </div>
                 <button
                   type="button"
                   onClick={fillDemoCredentials}
-                  className="btn btn-outline btn-xs text-[11px] border-amber-500/40 text-amber-300 hover:bg-amber-500/20 font-bold px-3 py-1.5 shrink-0"
+                  className="text-xs font-bold text-amber-400 hover:text-amber-300 hover:underline shrink-0"
                 >
                   Fill Demo Credentials →
                 </button>
@@ -209,7 +210,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
 
               {/* Error Banner */}
               {loginError && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-3 text-xs text-red-400 flex items-center gap-2.5 animate-fade-in">
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-xs text-red-400 flex items-center gap-2.5 animate-fade-in font-medium">
                   <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
                   <span>{loginError}</span>
                 </div>
@@ -220,7 +221,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                 
                 {/* Email Address */}
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1.5">Email Address</label>
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">Email Address</label>
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
@@ -228,7 +229,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                       placeholder="you@example.com"
                       value={loginForm.email}
                       onChange={e => { setLoginForm(p => ({ ...p, email: e.target.value })); setLoginError(''); }}
-                      className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
+                      className="w-full h-[48px] bg-[#050A15] border border-slate-800 rounded-[12px] pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
                     />
                   </div>
                 </div>
@@ -236,11 +237,11 @@ export default function AuthContainer({ initialTab = 'login' }) {
                 {/* Password */}
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
-                    <label className="text-xs font-bold text-slate-300">Password</label>
+                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Password</label>
                     <button
                       type="button"
                       onClick={handleForgotPassword}
-                      className="text-[11px] text-primary-400 hover:underline font-semibold"
+                      className="text-xs text-primary-400 hover:underline font-semibold"
                     >
                       Forgot Password?
                     </button>
@@ -249,15 +250,15 @@ export default function AuthContainer({ initialTab = 'login' }) {
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
                       type={showLoginPw ? 'text' : 'password'}
-                      placeholder="••••••••"
+                      placeholder="••••••••••••••••"
                       value={loginForm.password}
                       onChange={e => { setLoginForm(p => ({ ...p, password: e.target.value })); setLoginError(''); }}
-                      className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
+                      className="w-full h-[48px] bg-[#050A15] border border-slate-800 rounded-[12px] pl-10 pr-10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
                     />
                     <button
                       type="button"
                       onClick={() => setShowLoginPw(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
                     >
                       {showLoginPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -268,7 +269,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                 <button
                   type="submit"
                   disabled={loginLoading}
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-500 hover:to-violet-500 text-white font-extrabold text-xs shadow-lg shadow-primary-600/20 transition-all flex items-center justify-center gap-2"
+                  className="w-full h-[48px] rounded-[12px] bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-500 hover:to-violet-500 text-white font-extrabold text-sm shadow-lg shadow-primary-600/20 transition-all flex items-center justify-center gap-2 mt-2"
                 >
                   {loginLoading ? <Spinner /> : null}
                   {loginLoading ? 'Signing In...' : 'Sign In →'}
@@ -277,16 +278,16 @@ export default function AuthContainer({ initialTab = 'login' }) {
 
               {/* Divider */}
               <div className="flex items-center gap-3 my-4">
-                <div className="flex-1 h-px bg-slate-800" />
+                <div className="flex-1 h-px bg-slate-800/80" />
                 <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">or</span>
-                <div className="flex-1 h-px bg-slate-800" />
+                <div className="flex-1 h-px bg-slate-800/80" />
               </div>
 
               {/* Google Auth Button */}
               <button
                 type="button"
                 onClick={() => handleGoogleAuth('Sign-In')}
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-xs font-semibold text-slate-200 flex items-center justify-center gap-2.5 transition-colors"
+                className="w-full h-[48px] rounded-[12px] bg-[#050A15] hover:bg-slate-800/60 border border-slate-800 text-xs font-bold text-slate-200 flex items-center justify-center gap-2.5 transition-colors"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -300,7 +301,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
 
             {/* Switch Footer */}
             <div className="pt-6 border-t border-slate-800/80 mt-6 text-center">
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 font-medium">
                 Don't have an account?{' '}
                 <button
                   type="button"
@@ -317,26 +318,24 @@ export default function AuthContainer({ initialTab = 'login' }) {
           {/* ──────────────────────────────────────────────────────────────────
               RIGHT PANEL — REGISTER FORM
              ────────────────────────────────────────────────────────────────── */}
-          <div className={`p-6 md:p-10 flex flex-col justify-between transition-all duration-300 ${
-            activeTab === 'register'
-              ? 'ring-2 ring-primary-500/40 bg-gradient-to-b from-violet-950/20 via-transparent to-transparent'
-              : 'opacity-90 lg:opacity-75'
+          <div className={`p-8 lg:p-10 flex flex-col justify-between transition-colors duration-300 ${
+            activeTab === 'register' ? 'bg-[#0D162D]/60' : 'bg-transparent opacity-90 lg:opacity-80'
           } ${activeTab !== 'register' ? 'hidden lg:flex' : 'flex'}`}>
 
             <div className="space-y-5">
               
-              {/* Header */}
+              {/* Top Label & Heading */}
               <div>
-                <div className="flex items-center gap-2 text-xs font-bold text-violet-400 uppercase tracking-wider mb-1">
-                  <span>👤 Register</span>
+                <div className="text-xs font-extrabold text-violet-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                  <span>👤 REGISTER</span>
                 </div>
-                <h2 className="text-xl md:text-2xl font-black text-white">Create Your Account</h2>
-                <p className="text-xs text-slate-400 mt-1">Start your scholarship journey with UniScholar.</p>
+                <h2 className="text-2xl lg:text-3xl font-black text-white tracking-tight">Create Your Account</h2>
+                <p className="text-xs text-slate-400 mt-1 font-medium">Start your scholarship journey with UniScholar.</p>
               </div>
 
               {/* Error Banner */}
               {regError && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-3 text-xs text-red-400 flex items-center gap-2.5 animate-fade-in">
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-xs text-red-400 flex items-center gap-2.5 animate-fade-in font-medium">
                   <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
                   <span>{regError}</span>
                 </div>
@@ -347,7 +346,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                 
                 {/* Full Name */}
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Full Name</label>
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1">Full Name</label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
@@ -355,7 +354,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                       placeholder="e.g. Rahul Sharma"
                       value={regForm.name}
                       onChange={e => { setRegForm(p => ({ ...p, name: e.target.value })); setRegError(''); }}
-                      className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
+                      className="w-full h-[46px] bg-[#050A15] border border-slate-800 rounded-[12px] pl-10 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
                     />
                   </div>
                 </div>
@@ -363,7 +362,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                 {/* Email Address & Mobile Number in 2 cols */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">Email Address</label>
+                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1">Email Address</label>
                     <div className="relative">
                       <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                       <input
@@ -371,13 +370,13 @@ export default function AuthContainer({ initialTab = 'login' }) {
                         placeholder="you@example.com"
                         value={regForm.email}
                         onChange={e => { setRegForm(p => ({ ...p, email: e.target.value })); setRegError(''); }}
-                        className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
+                        className="w-full h-[46px] bg-[#050A15] border border-slate-800 rounded-[12px] pl-10 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">Mobile Number</label>
+                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1">Mobile Number</label>
                     <div className="relative">
                       <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                       <input
@@ -385,7 +384,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                         placeholder="+91 98765 43210"
                         value={regForm.mobile}
                         onChange={e => setRegForm(p => ({ ...p, mobile: e.target.value }))}
-                        className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
+                        className="w-full h-[46px] bg-[#050A15] border border-slate-800 rounded-[12px] pl-10 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
                       />
                     </div>
                   </div>
@@ -394,7 +393,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                 {/* Password & Confirm Password */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">Password</label>
+                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1">Password</label>
                     <div className="relative">
                       <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                       <input
@@ -402,7 +401,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                         placeholder="••••••••"
                         value={regForm.password}
                         onChange={e => { setRegForm(p => ({ ...p, password: e.target.value })); setRegError(''); }}
-                        className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-9 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
+                        className="w-full h-[46px] bg-[#050A15] border border-slate-800 rounded-[12px] pl-10 pr-9 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
                       />
                       <button
                         type="button"
@@ -415,7 +414,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">Confirm Password</label>
+                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1">Confirm Password</label>
                     <div className="relative">
                       <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                       <input
@@ -423,7 +422,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                         placeholder="Repeat password"
                         value={regForm.confirm}
                         onChange={e => { setRegForm(p => ({ ...p, confirm: e.target.value })); setRegError(''); }}
-                        className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-9 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
+                        className="w-full h-[46px] bg-[#050A15] border border-slate-800 rounded-[12px] pl-10 pr-9 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-medium"
                       />
                       <button
                         type="button"
@@ -437,8 +436,8 @@ export default function AuthContainer({ initialTab = 'login' }) {
                 </div>
 
                 {/* Password Requirements Checklist */}
-                <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] space-y-1">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Password must contain:</div>
+                <div className="p-2.5 rounded-xl bg-[#050A15] border border-slate-800 text-[11px] space-y-1">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PASSWORD MUST CONTAIN:</div>
                   <div className="flex flex-wrap items-center gap-3">
                     <span className={hasMinLen ? 'text-emerald-400 font-semibold flex items-center gap-1' : 'text-slate-500 flex items-center gap-1'}>
                       {hasMinLen ? <Check className="w-3 h-3 text-emerald-400" /> : '•'} Min. 8 characters
@@ -453,15 +452,15 @@ export default function AuthContainer({ initialTab = 'login' }) {
                 </div>
 
                 {/* Terms & Privacy Checkbox */}
-                <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-300 select-none pt-1">
+                <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-300 select-none pt-0.5">
                   <input
                     type="checkbox"
                     checked={regForm.agreeTerms}
                     onChange={e => { setRegForm(p => ({ ...p, agreeTerms: e.target.checked })); setRegError(''); }}
-                    className="mt-0.5 rounded bg-slate-950 border-slate-800 text-primary-600 focus:ring-primary-500"
+                    className="mt-0.5 rounded bg-[#050A15] border-slate-800 text-primary-600 focus:ring-primary-500"
                   />
                   <span>
-                    I agree to the <Link to="/terms" className="text-primary-400 hover:underline">Terms & Conditions</Link> and <Link to="/privacy" className="text-primary-400 hover:underline">Privacy Policy</Link>.
+                    I agree to UniScholar's <Link to="/terms" className="text-primary-400 hover:underline font-semibold">Terms & Conditions</Link> and <Link to="/privacy" className="text-primary-400 hover:underline font-semibold">Privacy Policy</Link>.
                   </span>
                 </label>
 
@@ -469,7 +468,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
                 <button
                   type="submit"
                   disabled={regLoading}
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-primary-600 hover:from-violet-500 hover:to-primary-500 text-white font-extrabold text-xs shadow-lg shadow-violet-600/20 transition-all flex items-center justify-center gap-2 mt-2"
+                  className="w-full h-[46px] rounded-[12px] bg-gradient-to-r from-violet-600 to-primary-600 hover:from-violet-500 hover:to-primary-500 text-white font-extrabold text-xs shadow-lg shadow-violet-600/20 transition-all flex items-center justify-center gap-2 mt-1"
                 >
                   {regLoading ? <Spinner /> : null}
                   {regLoading ? 'Creating Account...' : 'Create Account →'}
@@ -478,16 +477,16 @@ export default function AuthContainer({ initialTab = 'login' }) {
 
               {/* Divider */}
               <div className="flex items-center gap-3 my-3">
-                <div className="flex-1 h-px bg-slate-800" />
+                <div className="flex-1 h-px bg-slate-800/80" />
                 <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">or</span>
-                <div className="flex-1 h-px bg-slate-800" />
+                <div className="flex-1 h-px bg-slate-800/80" />
               </div>
 
               {/* Google Sign-up Button */}
               <button
                 type="button"
                 onClick={() => handleGoogleAuth('Sign-Up')}
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 text-xs font-semibold text-slate-200 flex items-center justify-center gap-2.5 transition-colors"
+                className="w-full h-[46px] rounded-[12px] bg-[#050A15] hover:bg-slate-800/60 border border-slate-800 text-xs font-bold text-slate-200 flex items-center justify-center gap-2.5 transition-colors"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -501,7 +500,7 @@ export default function AuthContainer({ initialTab = 'login' }) {
 
             {/* Switch Footer */}
             <div className="pt-6 border-t border-slate-800/80 mt-6 text-center">
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 font-medium">
                 Already have an account?{' '}
                 <button
                   type="button"
