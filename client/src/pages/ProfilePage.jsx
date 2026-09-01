@@ -918,149 +918,93 @@ export default function ProfilePage() {
 
         {/* ── TAB 4: DOCUMENTS WALLET ────────────────────────── */}
         {activeTab === 'documents' && (
-          <div className="space-y-6 animate-fade-in text-xs">
-            <p className="text-gray-400 mb-4 font-semibold">
-              Upload your actual credentials to verify your profile fields automatically using AI OCR extraction. Uploaded documents are stored in your Document Wallet.
-            </p>
+          <div className="space-y-4 animate-fade-in text-xs">
+            <div>
+              <h3 className="text-xs font-extrabold text-primary-600 dark:text-primary-400 uppercase tracking-wider">
+                Document Uploads
+              </h3>
+              <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-0.5">
+                Upload documents to verify your profile details. <span className="text-[10px] text-primary-500 dark:text-primary-400 font-medium font-mono ml-1">• Details may be extracted automatically</span>
+              </p>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* Income Certificate Slot */}
-              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700/80 rounded-3xl space-y-3 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-bold text-gray-700 dark:text-slate-350">Income Certificate</span>
-                    {form.documentUploads?.incomeCertificate ? (
-                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">✓ Uploaded & Verified</span>
-                    ) : (
-                      <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">⚠ Required</span>
-                    )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                { key: 'incomeCertificate', name: 'Income Certificate', desc: 'Proof of annual family income', required: true, icon: FileText },
+                { key: 'marksheet10th',     name: '10th Marksheet',     desc: 'Class 10 academic record',    required: true, icon: BookOpen },
+                { key: 'marksheet12th',     name: '12th Marksheet',     desc: 'Class 12 academic record',    required: true, icon: BookOpen },
+                { key: 'aadhaar',           name: 'Aadhaar Card',       desc: 'Identity verification document', required: true, icon: User },
+                { key: 'casteCertificate',  name: 'Caste Certificate',  desc: 'Category verification document', required: false, icon: Award },
+                { key: 'domicile',          name: 'Domicile Certificate', desc: 'State residency proof',       required: true, icon: MapPin },
+              ].map(doc => {
+                const DocIcon = doc.icon;
+                const docVal = form.documentUploads?.[doc.key];
+                const isUploaded = !!docVal;
+                const fileName = getDocFileName(docVal, '');
+
+                return (
+                  <div
+                    key={doc.key}
+                    className="p-3.5 rounded-2xl bg-gray-50/60 dark:bg-slate-900/70 border border-gray-200 dark:border-slate-800 flex flex-col justify-between space-y-3 relative transition-all hover:border-gray-300 dark:hover:border-slate-700 shadow-sm"
+                  >
+                    {/* Header: Icon + Name + Short Desc + Status */}
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-primary-500/10 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                            <DocIcon className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-bold text-gray-900 dark:text-slate-100 truncate block leading-tight">
+                              {doc.name}
+                            </h4>
+                            <p className="text-[10px] text-gray-500 dark:text-slate-400 truncate mt-0.5">
+                              {doc.desc}
+                            </p>
+                          </div>
+                        </div>
+
+                        {isUploaded ? (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+                            <Check className="w-3 h-3 text-emerald-500" /> Uploaded
+                          </span>
+                        ) : doc.required ? (
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/40 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0">
+                            Required
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-gray-500 dark:text-slate-400 font-bold bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-full shrink-0">
+                            Optional
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Upload Action / Drop Zone */}
+                    <div>
+                      <label className="py-2 px-3 flex items-center justify-center gap-2 bg-white dark:bg-slate-800/80 rounded-xl border border-gray-200 dark:border-slate-700/80 cursor-pointer relative hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors group">
+                        <input
+                          type="file"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          onChange={(e) => handleProfileFileChange(e, doc.key)}
+                          disabled={ocrLoading[doc.key]}
+                          accept=".pdf,.png,.jpg,.jpeg"
+                        />
+                        <Upload className="w-3.5 h-3.5 text-primary-500 group-hover:scale-110 transition-transform" />
+                        <span className="font-bold text-[11px] text-gray-700 dark:text-slate-200 truncate max-w-[170px]">
+                          {fileName || (isUploaded ? 'Replace Document' : 'Upload Document')}
+                        </span>
+                      </label>
+
+                      {ocrLoading[doc.key] && (
+                        <div className="flex items-center justify-center gap-1.5 text-[10px] text-primary-600 dark:text-primary-400 font-bold animate-pulse pt-2">
+                          <Spinner className="w-3 h-3" /> Details may be extracted automatically...
+                        </div>
+                      )}
+                    </div>
                   </div>
-
-                  <label className="py-8 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer relative hover:bg-gray-100/50 dark:hover:bg-slate-800/50 transition-colors">
-                    <input
-                      type="file"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      onChange={(e) => handleProfileFileChange(e, 'incomeCertificate')}
-                      disabled={ocrLoading['incomeCertificate']}
-                      accept=".pdf,.png,.jpg,.jpeg"
-                    />
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
-                      {getDocFileName(form.documentUploads?.incomeCertificate, 'Choose Income Certificate file')}
-                    </span>
-                  </label>
-                </div>
-
-                {ocrLoading['incomeCertificate'] && (
-                  <div className="flex items-center justify-center gap-2 text-[10px] text-primary-600 font-bold animate-pulse pt-2">
-                    <Spinner className="w-3.5 h-3.5" /> Uploading & OCR scanning...
-                  </div>
-                )}
-              </div>
-
-              {/* 10th Marksheet Slot */}
-              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700/80 rounded-3xl space-y-3 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-bold text-gray-700 dark:text-slate-350">10th Marksheet</span>
-                    {form.documentUploads?.marksheet10th ? (
-                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">✓ Uploaded & Verified</span>
-                    ) : (
-                      <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">⚠ Required</span>
-                    )}
-                  </div>
-
-                  <label className="py-8 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer relative hover:bg-gray-100/50 dark:hover:bg-slate-800/50 transition-colors">
-                    <input
-                      type="file"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      onChange={(e) => handleProfileFileChange(e, 'marksheet10th')}
-                      disabled={ocrLoading['marksheet10th']}
-                      accept=".pdf,.png,.jpg,.jpeg"
-                    />
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
-                      {getDocFileName(form.documentUploads?.marksheet10th, 'Choose 10th Marksheet file')}
-                    </span>
-                  </label>
-                </div>
-
-                {ocrLoading['marksheet10th'] && (
-                  <div className="flex items-center justify-center gap-2 text-[10px] text-primary-600 font-bold animate-pulse pt-2">
-                    <Spinner className="w-3.5 h-3.5" /> Uploading & OCR scanning...
-                  </div>
-                )}
-              </div>
-
-              {/* 12th Marksheet Slot */}
-              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700/80 rounded-3xl space-y-3 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-bold text-gray-700 dark:text-slate-350">12th Marksheet</span>
-                    {form.documentUploads?.marksheet12th ? (
-                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">✓ Uploaded & Verified</span>
-                    ) : (
-                      <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">⚠ Required</span>
-                    )}
-                  </div>
-
-                  <label className="py-8 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer relative hover:bg-gray-100/50 dark:hover:bg-slate-800/50 transition-colors">
-                    <input
-                      type="file"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      onChange={(e) => handleProfileFileChange(e, 'marksheet12th')}
-                      disabled={ocrLoading['marksheet12th']}
-                      accept=".pdf,.png,.jpg,.jpeg"
-                    />
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
-                      {getDocFileName(form.documentUploads?.marksheet12th, 'Choose 12th Marksheet file')}
-                    </span>
-                  </label>
-                </div>
-
-                {ocrLoading['marksheet12th'] && (
-                  <div className="flex items-center justify-center gap-2 text-[10px] text-primary-600 font-bold animate-pulse pt-2">
-                    <Spinner className="w-3.5 h-3.5" /> Uploading & OCR scanning...
-                  </div>
-                )}
-              </div>
-
-              {/* Domicile Certificate Slot */}
-              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700/80 rounded-3xl space-y-3 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-bold text-gray-700 dark:text-slate-350">Domicile Certificate</span>
-                    {form.documentUploads?.domicile ? (
-                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">✓ Uploaded & Verified</span>
-                    ) : (
-                      <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">⚠ Required</span>
-                    )}
-                  </div>
-
-                  <label className="py-8 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer relative hover:bg-gray-100/50 dark:hover:bg-slate-800/50 transition-colors">
-                    <input
-                      type="file"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      onChange={(e) => handleProfileFileChange(e, 'domicile')}
-                      disabled={ocrLoading['domicile']}
-                      accept=".pdf,.png,.jpg,.jpeg"
-                    />
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
-                      {getDocFileName(form.documentUploads?.domicile, 'Choose Domicile Certificate file')}
-                    </span>
-                  </label>
-                </div>
-
-                {ocrLoading['domicile'] && (
-                  <div className="flex items-center justify-center gap-2 text-[10px] text-primary-600 font-bold animate-pulse pt-2">
-                    <Spinner className="w-3.5 h-3.5" /> Uploading & OCR scanning...
-                  </div>
-                )}
-              </div>
-
+                );
+              })}
             </div>
           </div>
         )}
