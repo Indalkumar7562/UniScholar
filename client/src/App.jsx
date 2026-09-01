@@ -28,8 +28,12 @@ import AdminStudentsPage    from './pages/AdminStudentsPage.jsx';
 import AdminSchemesPage     from './pages/AdminSchemesPage.jsx';
 import AdminApplicationsPage from './pages/AdminApplicationsPage.jsx';
 import AdminDocumentsPage   from './pages/AdminDocumentsPage.jsx';
+import AdminEligibilityPage from './pages/AdminEligibilityPage.jsx';
 import AdminPartnersPage    from './pages/AdminPartnersPage.jsx';
+import AdminReportsPage    from './pages/AdminReportsPage.jsx';
+import AdminNotificationsPage from './pages/AdminNotificationsPage.jsx';
 import AdminAuditLogsPage   from './pages/AdminAuditLogsPage.jsx';
+import AdminSettingsPage    from './pages/AdminSettingsPage.jsx';
 
 import PartnerDashboardPage from './pages/PartnerDashboardPage.jsx';
 import PartnerSchemesPage   from './pages/PartnerSchemesPage.jsx';
@@ -81,9 +85,9 @@ function AppRoutes() {
       {/* Public Pages */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login"         element={<PublicRoute><LoginPage /></PublicRoute>} />
-      <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-      <Route path="/admin/login" element={<AdminLoginPage />} />
-      <Route path="/partner/login" element={<PartnerLoginPage />} />
+      <Route path="/register"      element={<PublicRoute><RegisterPage /></PublicRoute>} />
+      <Route path="/admin/login"    element={<AdminLoginPage />} />
+      <Route path="/partner/login"  element={<PartnerLoginPage />} />
       <Route path="/access-restricted" element={<AccessRestrictedPage />} />
 
       <Route path="/terms"    element={<TermsPage />} />
@@ -160,14 +164,19 @@ function AppRoutes() {
         </ProtectedRoute>
       }/>
 
-      {/* Admin Portal Protected Routes */}
+      {/* Admin Portal Standalone Protected Routes */}
       <Route path="/admin/dashboard" element={<AdminRoute><AdminLayout><AdminDashboardPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/students"  element={<AdminRoute><AdminLayout><AdminStudentsPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/scholarships" element={<AdminRoute><AdminLayout><AdminSchemesPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/schemes"   element={<AdminRoute><AdminLayout><AdminSchemesPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/applications" element={<AdminRoute><AdminLayout><AdminApplicationsPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/documents" element={<AdminRoute><AdminLayout><AdminDocumentsPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/eligibility" element={<AdminRoute><AdminLayout><AdminEligibilityPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/partners"  element={<AdminRoute><AdminLayout><AdminPartnersPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/reports"   element={<AdminRoute><AdminLayout><AdminReportsPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/notifications" element={<AdminRoute><AdminLayout><AdminNotificationsPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin/audit-logs" element={<AdminRoute><AdminLayout><AdminAuditLogsPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/settings"  element={<AdminRoute><AdminLayout><AdminSettingsPage /></AdminLayout></AdminRoute>} />
       <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
 
       {/* Partner Portal Protected Routes */}

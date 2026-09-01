@@ -3,17 +3,22 @@ import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
   LayoutDashboard, Users, BookOpen, FileCheck, FileText, 
-  Building2, History, LogOut, Menu, X, Shield, ArrowLeft, GraduationCap
+  Building2, History, LogOut, Menu, X, Shield, GraduationCap,
+  Sliders, BarChart3, Bell, Settings
 } from 'lucide-react';
 
 const ADMIN_NAV_ITEMS = [
   { to: '/admin/dashboard',    label: 'Dashboard',             icon: LayoutDashboard },
-  { to: '/admin/students',     label: 'Students',              icon: Users },
-  { to: '/admin/schemes',      label: 'Scholarships',          icon: BookOpen },
-  { to: '/admin/applications', label: 'Applications',          icon: FileCheck },
-  { to: '/admin/documents',    label: 'Document Verification', icon: FileText },
-  { to: '/admin/partners',     label: 'Partners',              icon: Building2 },
-  { to: '/admin/audit-logs',   label: 'Audit Logs',            icon: History },
+  { to: '/admin/students',     label: '👥 Students',           icon: Users },
+  { to: '/admin/scholarships', label: '🎓 Scholarships',       icon: BookOpen },
+  { to: '/admin/applications', label: '📋 Applications',       icon: FileCheck },
+  { to: '/admin/documents',    label: '📄 Document Verification', icon: FileText },
+  { to: '/admin/eligibility',  label: '✅ Eligibility Rules',  icon: Sliders },
+  { to: '/admin/partners',     label: '🏢 Partners',           icon: Building2 },
+  { to: '/admin/reports',      label: '📊 Reports & Analytics',icon: BarChart3 },
+  { to: '/admin/notifications',label: '🔔 Notifications',      icon: Bell },
+  { to: '/admin/audit-logs',   label: '🧾 Audit Logs',         icon: History },
+  { to: '/admin/settings',     label: '⚙ System Settings',     icon: Settings },
 ];
 
 export default function AdminLayout({ children }) {
@@ -45,7 +50,7 @@ export default function AdminLayout({ children }) {
         lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:z-30 lg:shrink-0
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div>
+        <div className="overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between p-5 border-b border-slate-800">
             <Link to="/admin/dashboard" className="flex items-center gap-3">
@@ -93,7 +98,7 @@ export default function AdminLayout({ children }) {
         </div>
 
         {/* Footer Actions */}
-        <div className="p-3 border-t border-slate-800 space-y-1 text-xs">
+        <div className="p-3 border-t border-slate-800 space-y-1 text-xs bg-slate-900">
           <Link
             to="/dashboard"
             className="flex items-center gap-2 px-3.5 py-2 text-slate-400 hover:text-white font-bold rounded-xl hover:bg-slate-800/60 transition-colors"
@@ -106,7 +111,7 @@ export default function AdminLayout({ children }) {
             className="w-full flex items-center gap-2 px-3.5 py-2 text-red-400 hover:text-red-300 font-bold rounded-xl hover:bg-red-950/30 transition-colors"
           >
             <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
+            <span>🚪 Logout</span>
           </button>
         </div>
       </aside>
