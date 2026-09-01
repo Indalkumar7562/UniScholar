@@ -171,8 +171,6 @@ const register = async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 const login = async (req, res) => {
-  await ensureDemoAccounts();
-
   const { email, password } = req.body;
 
   if (!email || !password) {
