@@ -2,10 +2,16 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PageLoader } from './components/ui/index.jsx';
 import DashboardLayout from './components/layout/DashboardLayout.jsx';
+import AdminLayout from './components/layout/AdminLayout.jsx';
+import PartnerLayout from './components/layout/PartnerLayout.jsx';
 
 import LandingPage          from './pages/LandingPage.jsx';
 import LoginPage            from './pages/LoginPage.jsx';
 import RegisterPage         from './pages/RegisterPage.jsx';
+import AdminLoginPage       from './pages/AdminLoginPage.jsx';
+import PartnerLoginPage     from './pages/PartnerLoginPage.jsx';
+import AccessRestrictedPage from './pages/AccessRestrictedPage.jsx';
+
 import DashboardHome        from './pages/DashboardHome.jsx';
 import ProfilePage          from './pages/ProfilePage.jsx';
 import EligibilityPage      from './pages/EligibilityPage.jsx';
@@ -13,10 +19,24 @@ import ResultsPage          from './pages/ResultsPage.jsx';
 import SchemesPage          from './pages/SchemesPage.jsx';
 import SchemeDetailPage     from './pages/SchemeDetailPage.jsx';
 import SchemeComparisonPage from './pages/SchemeComparisonPage.jsx';
-import AdminDashboard       from './pages/AdminDashboard.jsx';
 import AIHub                from './pages/AIHub.jsx';
 import DocumentVault        from './pages/DocumentVault.jsx';
 import ApplicationTrackerPage from './pages/ApplicationTrackerPage.jsx';
+
+import AdminDashboardPage   from './pages/AdminDashboardPage.jsx';
+import AdminStudentsPage    from './pages/AdminStudentsPage.jsx';
+import AdminSchemesPage     from './pages/AdminSchemesPage.jsx';
+import AdminApplicationsPage from './pages/AdminApplicationsPage.jsx';
+import AdminDocumentsPage   from './pages/AdminDocumentsPage.jsx';
+import AdminPartnersPage    from './pages/AdminPartnersPage.jsx';
+import AdminAuditLogsPage   from './pages/AdminAuditLogsPage.jsx';
+
+import PartnerDashboardPage from './pages/PartnerDashboardPage.jsx';
+import PartnerSchemesPage   from './pages/PartnerSchemesPage.jsx';
+import PartnerApplicationsPage from './pages/PartnerApplicationsPage.jsx';
+import PartnerDocumentsPage from './pages/PartnerDocumentsPage.jsx';
+import PartnerVerificationPage from './pages/PartnerVerificationPage.jsx';
+import PartnerReportsPage   from './pages/PartnerReportsPage.jsx';
 
 import StudentServices      from './pages/StudentServices.jsx';
 import CareerGuidance       from './pages/CareerGuidance.jsx';
@@ -38,7 +58,15 @@ const ProtectedRoute = ({ children }) => {
 const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return <PageLoader />;
-  return user?.role === 'admin' ? children : <Navigate to="/dashboard" replace />;
+  if (!user) return <Navigate to="/admin/login" replace />;
+  return user.role === 'admin' ? children : <Navigate to="/access-restricted" replace />;
+};
+
+const PartnerRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <Navigate to="/partner/login" replace />;
+  return (user.role === 'partner' || user.role === 'admin') ? children : <Navigate to="/access-restricted" replace />;
 };
 
 const PublicRoute = ({ children }) => {
@@ -50,10 +78,14 @@ const PublicRoute = ({ children }) => {
 function AppRoutes() {
   return (
     <Routes>
-      {/* Public */}
+      {/* Public Pages */}
       <Route path="/" element={<LandingPage />} />
-      <Route path="/login"    element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="/login"         element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+      <Route path="/admin/login" element={<AdminLoginPage />} />
+      <Route path="/partner/login" element={<PartnerLoginPage />} />
+      <Route path="/access-restricted" element={<AccessRestrictedPage />} />
+
       <Route path="/terms"    element={<TermsPage />} />
       <Route path="/privacy"  element={<PrivacyPage />} />
       <Route path="/services" element={<StudentServices />} />
@@ -65,7 +97,7 @@ function AppRoutes() {
       <Route path="/support-programme" element={<SupportProgramme />} />
       <Route path="/results-public" element={<ResultsPublicPage />} />
 
-      {/* Protected (dashboard) */}
+      {/* Student Protected Routes */}
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <DashboardLayout><DashboardHome /></DashboardLayout>
@@ -111,13 +143,15 @@ function AppRoutes() {
         <ProtectedRoute>
           <DashboardLayout><SchemesPage /></DashboardLayout>
         </ProtectedRoute>
-      }/>      <Route path="/schemes/compare" element={
-        <ProtectedRoute>
-          <DashboardLayout><SchemeComparisonPage /></DashboardLayout>
-        </ProtectedRoute>
-      }/>      <Route path="/schemes/:id" element={
+      }/>
+      <Route path="/schemes/:id" element={
         <ProtectedRoute>
           <DashboardLayout><SchemeDetailPage /></DashboardLayout>
+        </ProtectedRoute>
+      }/>
+      <Route path="/compare" element={
+        <ProtectedRoute>
+          <DashboardLayout><SchemeComparisonPage /></DashboardLayout>
         </ProtectedRoute>
       }/>
       <Route path="/ai-hub" element={
@@ -125,13 +159,24 @@ function AppRoutes() {
           <DashboardLayout><AIHub /></DashboardLayout>
         </ProtectedRoute>
       }/>
-      <Route path="/admin" element={
-        <ProtectedRoute>
-          <AdminRoute>
-            <DashboardLayout><AdminDashboard /></DashboardLayout>
-          </AdminRoute>
-        </ProtectedRoute>
-      }/>
+
+      {/* Admin Portal Protected Routes */}
+      <Route path="/admin/dashboard" element={<AdminRoute><AdminLayout><AdminDashboardPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/students"  element={<AdminRoute><AdminLayout><AdminStudentsPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/schemes"   element={<AdminRoute><AdminLayout><AdminSchemesPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/applications" element={<AdminRoute><AdminLayout><AdminApplicationsPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/documents" element={<AdminRoute><AdminLayout><AdminDocumentsPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/partners"  element={<AdminRoute><AdminLayout><AdminPartnersPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/audit-logs" element={<AdminRoute><AdminLayout><AdminAuditLogsPage /></AdminLayout></AdminRoute>} />
+      <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+
+      {/* Partner Portal Protected Routes */}
+      <Route path="/partner/dashboard"    element={<PartnerRoute><PartnerLayout><PartnerDashboardPage /></PartnerLayout></PartnerRoute>} />
+      <Route path="/partner/schemes"      element={<PartnerRoute><PartnerLayout><PartnerSchemesPage /></PartnerLayout></PartnerRoute>} />
+      <Route path="/partner/applications" element={<PartnerRoute><PartnerLayout><PartnerApplicationsPage /></PartnerLayout></PartnerRoute>} />
+      <Route path="/partner/documents"    element={<PartnerRoute><PartnerLayout><PartnerDocumentsPage /></PartnerLayout></PartnerRoute>} />
+      <Route path="/partner/verification" element={<PartnerRoute><PartnerLayout><PartnerVerificationPage /></PartnerLayout></PartnerRoute>} />
+      <Route path="/partner/reports"      element={<PartnerRoute><PartnerLayout><PartnerReportsPage /></PartnerLayout></PartnerRoute>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

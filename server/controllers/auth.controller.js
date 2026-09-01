@@ -3,6 +3,61 @@ const Profile = require('../models/Profile.model');
 const { sendTokenResponse } = require('../utils/jwt.utils');
 const { validationResult } = require('express-validator');
 
+// Helper to seed demo accounts on demand
+const ensureDemoAccounts = async () => {
+  try {
+    const adminExists = await User.findOne({ email: 'admin@demo.com' });
+    if (!adminExists) {
+      await User.create({
+        name: 'UniScholar System Admin',
+        email: 'admin@demo.com',
+        password: 'demo@123',
+        role: 'admin',
+        isEmailVerified: true
+      });
+    }
+
+    const partnerExists = await User.findOne({ email: 'partner@demo.com' });
+    if (!partnerExists) {
+      await User.create({
+        name: 'AICTE Welfare Partner',
+        email: 'partner@demo.com',
+        password: 'demo@123',
+        role: 'partner',
+        organization: 'All India Council for Technical Education (AICTE)',
+        partnerStatus: 'Active',
+        isEmailVerified: true
+      });
+    }
+
+    const studentExists = await User.findOne({ email: 'student@demo.com' });
+    if (!studentExists) {
+      const student = await User.create({
+        name: 'Priya Sharma',
+        email: 'student@demo.com',
+        password: 'demo@123',
+        role: 'student',
+        isEmailVerified: true
+      });
+      await Profile.create({
+        user: student._id,
+        fullName: 'Priya Sharma',
+        age: 19,
+        gender: 'Female',
+        state: 'Gujarat',
+        annualFamilyIncome: 150000,
+        educationLevel: '12th Pass',
+        stream: 'Science',
+        category: 'General',
+        cgpaOrPercentage: 88,
+        isComplete: true
+      });
+    }
+  } catch (err) {
+    console.error('Demo account seeding notice:', err.message);
+  }
+};
+
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
@@ -12,7 +67,7 @@ const register = async (req, res) => {
     return res.status(400).json({ success: false, message: errors.array()[0].msg });
   }
 
-  const { name, email, password } = req.body;
+  const { name, email, password, role, organization } = req.body;
 
   try {
     const existingUser = await User.findOne({ email });
@@ -20,10 +75,18 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email already registered' });
     }
 
-    const user = await User.create({ name, email, password });
+    const assignedRole = ['admin', 'partner'].includes(role) ? role : 'student';
+
+    const user = await User.create({ 
+      name, 
+      email, 
+      password,
+      role: assignedRole,
+      organization: organization || (assignedRole === 'partner' ? 'Scholarship Partner Org' : '')
+    });
 
     // Create empty profile
-    await Profile.create({ user: user._id, fullName: name, age: 18, annualFamilyIncome: 0, educationLevel: 'Below 10th', category: 'General', state: 'Other' });
+    await Profile.create({ user: user._id, fullName: name, age: 18, annualFamilyIncome: 0, educationLevel: '12th Pass', category: 'General', state: 'Other' });
 
     sendTokenResponse(user, 201, res, 'Account created successfully');
   } catch (error) {
@@ -44,6 +107,8 @@ const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
+    await ensureDemoAccounts();
+
     const user = await User.findOne({ email }).select('+password');
     if (!user || !user.password) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
@@ -100,87 +165,44 @@ const googleLogin = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Google credential is required' });
   }
 
-  let payload;
-  if (credential.startsWith('mock_google_token_')) {
-    try {
-      const decodedMock = JSON.parse(Buffer.from(credential.replace('mock_google_token_', ''), 'base64').toString('utf-8'));
-      payload = {
-        email: decodedMock.email,
-        name: decodedMock.name,
-        picture: decodedMock.picture || '',
-        sub: decodedMock.sub || `mock_${Date.now()}`
-      };
-    } catch (e) {
-      return res.status(400).json({ success: false, message: 'Invalid Mock Google token' });
-    }
-  } else {
-    payload = decodeGoogleToken(credential);
+  const decoded = decodeGoogleToken(credential);
+  if (!decoded || !decoded.email) {
+    return res.status(400).json({ success: false, message: 'Invalid Google token' });
   }
 
-  if (!payload || !payload.email) {
-    return res.status(400).json({ success: false, message: 'Invalid Google credential' });
-  }
-
-  const { email, name, picture, sub } = payload;
+  const { email, name, picture, sub } = decoded;
 
   try {
     let user = await User.findOne({ email });
-    let isNewUser = false;
 
     if (!user) {
-      isNewUser = true;
-      const randomPassword = Math.random().toString(36).slice(-8) + 'A1!';
       user = await User.create({
-        name,
+        name: name || 'Google User',
         email,
-        password: randomPassword,
         googleId: sub,
         avatar: picture || '',
-        isEmailVerified: true
+        isEmailVerified: true,
       });
 
-      // Create empty profile
-      await Profile.create({
-        user: user._id,
-        fullName: name,
-        age: 18,
-        annualFamilyIncome: 0,
-        educationLevel: 'Below 10th',
-        category: 'General',
-        state: 'Other'
-      });
-    } else {
-      let changed = false;
-      if (!user.googleId) {
-        user.googleId = sub;
-        changed = true;
-      }
-      if (picture && user.avatar !== picture) {
-        user.avatar = picture;
-        changed = true;
-      }
-      if (changed) {
-        await user.save();
-      }
+      await Profile.create({ user: user._id, fullName: name || 'Google User', age: 18, annualFamilyIncome: 0, educationLevel: '12th Pass', category: 'General', state: 'Other' });
+    } else if (!user.googleId) {
+      user.googleId = sub;
+      if (picture && !user.avatar) user.avatar = picture;
+      user.isEmailVerified = true;
+      await user.save();
     }
 
-    sendTokenResponse(user, 200, res, isNewUser ? 'Account registered and logged in with Google' : 'Logged in with Google successfully');
+    sendTokenResponse(user, 200, res, 'Google authentication successful');
   } catch (error) {
-    console.error('Google Login Error:', error);
-    res.status(500).json({ success: false, message: 'Server error during Google Login' });
+    console.error('Google auth error:', error);
+    res.status(500).json({ success: false, message: 'Server error during Google authentication' });
   }
 };
 
-// @desc    Get auth configurations (like Google Client ID)
-// @route   GET /api/auth/config
-// @access  Public
-const getAuthConfig = async (req, res) => {
-  res.json({
-    success: true,
-    googleClientId: process.env.GOOGLE_CLIENT_ID || ''
-  });
+module.exports = {
+  register,
+  login,
+  getMe,
+  logout,
+  googleLogin,
 };
-
-module.exports = { register, login, getMe, logout, googleLogin, getAuthConfig };
-
-

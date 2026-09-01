@@ -27,8 +27,14 @@ const userSchema = new mongoose.Schema(
     avatar: { type: String, default: '' },
     role: {
       type: String,
-      enum: ['student', 'admin'],
+      enum: ['student', 'admin', 'partner'],
       default: 'student',
+    },
+    organization: { type: String, default: '' },
+    partnerStatus: {
+      type: String,
+      enum: ['Pending Approval', 'Verified', 'Active', 'Suspended', 'Inactive'],
+      default: 'Active',
     },
     isEmailVerified: { type: Boolean, default: false },
     bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Scheme' }],

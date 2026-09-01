@@ -306,8 +306,8 @@ export default function AuthContainer({ initialTab = 'login' }) {
                 Continue with Google
               </button>
 
-              {/* Bottom Compact Register CTA */}
-              <div className="pt-2 border-t border-slate-800/80 text-center">
+              {/* Bottom Compact Register CTA & Admin/Partner link */}
+              <div className="pt-2 border-t border-slate-800/80 text-center space-y-1">
                 <p className="text-[11px] text-slate-400 font-medium">
                   New to UniScholar?{' '}
                   <button
@@ -317,6 +317,16 @@ export default function AuthContainer({ initialTab = 'login' }) {
                   >
                     Create Account →
                   </button>
+                </p>
+
+                <p className="text-[10px] text-slate-500 font-medium pt-1">
+                  Are you an administrator or partner?{' '}
+                  <Link
+                    to="/admin/login"
+                    className="text-purple-400 font-bold hover:underline"
+                  >
+                    Admin / Partner Login →
+                  </Link>
                 </p>
               </div>
 
