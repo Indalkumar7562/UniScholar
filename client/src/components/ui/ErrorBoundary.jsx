@@ -3,7 +3,7 @@ import React from 'react';
 export class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
 
   static getDerivedStateFromError(error) {
@@ -11,7 +11,8 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('UniScholar UI Error Boundary caught an error:', error, errorInfo);
+    console.error('🔴 [UniScholar UI Exception]:', error, errorInfo);
+    this.setState({ errorInfo });
   }
 
   render() {
@@ -22,29 +23,25 @@ export class ErrorBoundary extends React.Component {
             <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-3xl">
               ⚠️
             </div>
-            <h2 className="text-xl font-bold text-slate-100">UniScholar Interface Notice</h2>
+            <h2 className="text-xl font-bold text-slate-100">Unable to Render View</h2>
             <p className="text-xs text-slate-400 leading-relaxed">
-              A temporary interface state occurred while rendering this view. Please click below to refresh and load the latest profile data.
+              {this.state.error?.message || 'An unexpected rendering error occurred.'}
             </p>
             <div className="pt-2 flex flex-col gap-2">
               <button
                 onClick={() => {
-                  this.setState({ hasError: false });
-                  window.location.reload();
+                  this.setState({ hasError: false, error: null, errorInfo: null });
                 }}
                 className="w-full py-2.5 px-4 rounded-xl bg-primary-600 hover:bg-primary-500 font-bold text-xs text-white transition-colors shadow-lg"
               >
-                Reload Page
+                Retry
               </button>
-              <button
-                onClick={() => {
-                  this.setState({ hasError: false });
-                  window.location.href = '/dashboard';
-                }}
-                className="w-full py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-xs text-slate-300 transition-colors"
+              <a
+                href="/dashboard"
+                className="w-full py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-xs text-slate-300 transition-colors inline-block"
               >
                 Back to Dashboard
-              </button>
+              </a>
             </div>
           </div>
         </div>

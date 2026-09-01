@@ -23,8 +23,15 @@ const PWD_TYPES = ['Visual', 'Hearing', 'Physical/Locomotor', 'Intellectual', 'M
 const RESIDENTIAL_AREAS = ['Urban', 'Rural'];
 const PROFESSIONS = ['Student', 'Farmer', 'Labour Worker', 'Government Employee', 'Private Employee', 'Unemployed', 'Self-employed', 'Business Owner'];
 
+const getDocFileName = (val, fallback = 'Choose file') => {
+  if (typeof val === 'string' && val.trim()) {
+    return val.split('/').pop() || fallback;
+  }
+  return fallback;
+};
+
 const calculateAge = (dobString) => {
-  if (!dobString) return null;
+  if (!dobString || typeof dobString !== 'string') return null;
   const birthDate = new Date(dobString);
   const today = new Date();
   if (isNaN(birthDate.getTime())) return null;
@@ -330,7 +337,7 @@ export default function ProfilePage() {
         successText = '✓ Academic details saved successfully! Your education history has been updated. You can now proceed to Financial Details.';
       } else if (activeTab === 'personal') {
         successText = '✓ Profile saved successfully! Your personal details have been updated. You can now proceed to Academic Details.';
-      } else if (activeTab === 'social') {
+      } else if (activeTab === 'financial') {
         successText = '✓ Financial details saved successfully! Your eligibility details have been updated. You can now proceed to Documents.';
       }
       toast.success(successText, { duration: 4000 });
@@ -525,7 +532,7 @@ export default function ProfilePage() {
               <button 
                 onClick={() => {
                   if (activeTab === 'personal') setIsEditingPersonal(!isEditingPersonal);
-                  else if (activeTab === 'social') setIsEditingFinancial(!isEditingFinancial);
+                  else if (activeTab === 'financial') setIsEditingFinancial(!isEditingFinancial);
                   else setActiveTab('personal');
                 }}
                 className="btn btn-primary btn-xs w-full text-xs font-bold py-2 flex items-center justify-center gap-1.5 shadow"
@@ -940,9 +947,7 @@ export default function ProfilePage() {
                     />
                     <Upload className="w-8 h-8 text-gray-400 mb-2" />
                     <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
-                      {form.documentUploads?.incomeCertificate 
-                        ? form.documentUploads.incomeCertificate.split('/').pop() 
-                        : 'Choose Income Certificate file'}
+                      {getDocFileName(form.documentUploads?.incomeCertificate, 'Choose Income Certificate file')}
                     </span>
                   </label>
                 </div>
@@ -976,9 +981,7 @@ export default function ProfilePage() {
                     />
                     <Upload className="w-8 h-8 text-gray-400 mb-2" />
                     <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
-                      {form.documentUploads?.marksheet10th 
-                        ? form.documentUploads.marksheet10th.split('/').pop() 
-                        : 'Choose 10th Marksheet file'}
+                      {getDocFileName(form.documentUploads?.marksheet10th, 'Choose 10th Marksheet file')}
                     </span>
                   </label>
                 </div>
@@ -1012,9 +1015,7 @@ export default function ProfilePage() {
                     />
                     <Upload className="w-8 h-8 text-gray-400 mb-2" />
                     <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
-                      {form.documentUploads?.marksheet12th 
-                        ? form.documentUploads.marksheet12th.split('/').pop() 
-                        : 'Choose 12th Marksheet file'}
+                      {getDocFileName(form.documentUploads?.marksheet12th, 'Choose 12th Marksheet file')}
                     </span>
                   </label>
                 </div>
@@ -1048,9 +1049,7 @@ export default function ProfilePage() {
                     />
                     <Upload className="w-8 h-8 text-gray-400 mb-2" />
                     <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
-                      {form.documentUploads?.domicile 
-                        ? form.documentUploads.domicile.split('/').pop() 
-                        : 'Choose Domicile Certificate file'}
+                      {getDocFileName(form.documentUploads?.domicile, 'Choose Domicile Certificate file')}
                     </span>
                   </label>
                 </div>
@@ -1174,7 +1173,7 @@ export default function ProfilePage() {
 
           <button 
             type="button"
-            onClick={() => setActiveTab('social')}
+            onClick={() => setActiveTab('financial')}
             className={`p-3 rounded-2xl border text-left flex items-center justify-between transition-colors ${
               form.annualFamilyIncome !== '' && form.category 
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
