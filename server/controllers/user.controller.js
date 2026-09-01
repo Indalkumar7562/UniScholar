@@ -24,11 +24,13 @@ const upsertProfile = async (req, res) => {
     const {
       fullName,
       age,
+      dob,
       gender,
       state,
       district,
       mobileNumber,
       email,
+      residentialArea,
       educationLevel,
       stream,
       collegeName,
@@ -39,18 +41,23 @@ const upsertProfile = async (req, res) => {
       bplStatus,
       category,
       minorityStatus,
+      minorityCommunity,
       disabilityStatus,
+      pwdType,
+      pwdPercentage,
       documentUploads,
     } = req.body;
 
     const profileData = {
       fullName,
       age,
+      dob,
       gender,
       state,
       district,
       mobileNumber,
       email,
+      residentialArea,
       educationLevel,
       stream,
       collegeName,
@@ -61,7 +68,10 @@ const upsertProfile = async (req, res) => {
       bplStatus,
       category,
       minorityStatus,
+      minorityCommunity,
       disabilityStatus,
+      pwdType,
+      pwdPercentage,
       documentUploads,
     };
 

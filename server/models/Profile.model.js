@@ -44,9 +44,20 @@ const profileSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    dob: {
+      type: String,
+      default: '',
+    },
     profileImage: {
       type: String,
       default: '',
+    },
+
+    // Residential Details
+    residentialArea: {
+      type: String,
+      enum: ['Urban', 'Rural'],
+      default: 'Urban',
     },
 
     // Education Details
@@ -95,19 +106,36 @@ const profileSchema = new mongoose.Schema(
       default: false,
     },
 
-    // Social Details
+    // Social & Eligibility Details
     category: {
       type: String,
       required: [true, 'Category is required'],
-      enum: ['General', 'OBC', 'SC', 'ST', 'Minority'],
+      enum: ['General', 'EWS', 'OBC', 'SC', 'ST', 'Minority'],
+      default: 'General',
     },
     minorityStatus: {
       type: Boolean,
       default: false,
     },
+    minorityCommunity: {
+      type: String,
+      enum: ['Muslim', 'Christian', 'Sikh', 'Buddhist', 'Jain', 'Parsi', 'Other', 'Not Applicable'],
+      default: 'Not Applicable',
+    },
     disabilityStatus: {
       type: Boolean,
       default: false,
+    },
+    pwdType: {
+      type: String,
+      enum: ['Visual', 'Hearing', 'Physical/Locomotor', 'Intellectual', 'Multiple', 'Other', 'Not Applicable'],
+      default: 'Not Applicable',
+    },
+    pwdPercentage: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0,
     },
 
     // Document Uploads (simulated URLs/paths)
@@ -137,7 +165,7 @@ const profileSchema = new mongoose.Schema(
 profileSchema.pre('save', function (next) {
   this.isComplete = !!(
     this.fullName &&
-    this.age &&
+    (this.age || this.dob) &&
     this.state &&
     this.educationLevel &&
     this.category &&

@@ -3,32 +3,34 @@ import { useAuth } from '../context/AuthContext';
 import { userAPI, aiAPI, documentAPI } from '../services/api';
 import { t } from '../utils/translate';
 import { SectionHeader, Avatar, ProgressBar, Spinner } from '../components/ui/index.jsx';
+import { STATES_AND_DISTRICTS, STATES_LIST } from '../data/indiaLocations';
 
 import { 
   Save, User, BookOpen, IndianRupee, FileText, Upload, 
-  Sparkles, CheckCircle2, ChevronRight, ChevronLeft, ShieldAlert 
+  Sparkles, CheckCircle2, ChevronRight, ChevronLeft, ShieldAlert, Check
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const EDU_LEVELS = ['Below 10th', '10th Pass', '12th Pass', 'Graduation', 'Post Graduation'];
-const STREAMS     = ['Science', 'Commerce', 'Arts', 'Diploma', 'Engineering', 'Medical', 'ITI', 'Not Applicable'];
-const CATEGORIES  = ['General', 'OBC', 'SC', 'ST'];
-const GENDERS     = ['Male', 'Female', 'Other'];
-const PROFESSIONS = ['Student', 'Farmer', 'Labour Worker', 'Government Employee', 'Private Employee', 'Unemployed'];
-const STATES = [
-  'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Delhi','Goa','Gujarat',
-  'Haryana','Himachal Pradesh','Jammu & Kashmir','Jharkhand','Karnataka','Kerala',
-  'Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha',
-  'Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand',
-  'West Bengal'
-];
+const EDU_LEVELS = ['Below 10th', '10th Pass', '12th Pass', 'Diploma', 'Graduation', 'Post Graduation', 'PhD'];
+const STREAMS     = ['Science', 'Commerce', 'Arts', 'Diploma', 'Engineering', 'Medical', 'ITI', 'Other', 'Not Applicable'];
+const CATEGORIES  = ['General', 'EWS', 'OBC', 'SC', 'ST'];
+const GENDERS     = ['Male', 'Female', 'Other', 'Prefer not to say'];
+const MINORITY_COMMUNITIES = ['Muslim', 'Christian', 'Sikh', 'Buddhist', 'Jain', 'Parsi', 'Other'];
+const PWD_TYPES = ['Visual', 'Hearing', 'Physical/Locomotor', 'Intellectual', 'Multiple', 'Other'];
+const RESIDENTIAL_AREAS = ['Urban', 'Rural'];
+const PROFESSIONS = ['Student', 'Farmer', 'Labour Worker', 'Government Employee', 'Private Employee', 'Unemployed', 'Self-employed', 'Business Owner'];
 
-const MOCK_FILES = {
-  aadhaar: 'https://uss-documents.s3.amazonaws.com/aadhaar_priya.pdf',
-  incomeCertificate: 'https://uss-documents.s3.amazonaws.com/income_priya.pdf',
-  marksheet: 'https://uss-documents.s3.amazonaws.com/marksheet_priya.pdf',
-  domicile: 'https://uss-documents.s3.amazonaws.com/domicile_priya.pdf',
-  casteCertificate: 'https://uss-documents.s3.amazonaws.com/caste_priya.pdf'
+const calculateAge = (dobString) => {
+  if (!dobString) return null;
+  const birthDate = new Date(dobString);
+  const today = new Date();
+  if (isNaN(birthDate.getTime())) return null;
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age >= 0 ? age : null;
 };
 
 export default function ProfilePage() {
@@ -44,14 +46,14 @@ export default function ProfilePage() {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
     if (!allowedTypes.includes(selectedFile.type)) {
-      toast.error('Invalid format. Please select a JPG, JPEG, or PNG image.');
+      toast.error('Please upload a JPG, JPEG, PNG, or WebP image under 2 MB.');
       return;
     }
 
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be 5MB or less');
+    if (selectedFile.size > 2 * 1024 * 1024) {
+      toast.error('Please upload a JPG, JPEG, PNG, or WebP image under 2 MB.');
       return;
     }
 
@@ -94,10 +96,12 @@ export default function ProfilePage() {
 
   const [form, setForm] = useState({
     fullName: '',
+    dob: '',
     age: '',
     gender: 'Male',
     state: '',
     district: '',
+    residentialArea: 'Urban',
     mobileNumber: '',
     email: '',
     educationLevel: '',
@@ -110,7 +114,10 @@ export default function ProfilePage() {
     bplStatus: false,
     category: 'General',
     minorityStatus: false,
+    minorityCommunity: 'Not Applicable',
     disabilityStatus: false,
+    pwdType: 'Not Applicable',
+    pwdPercentage: 0,
     documentUploads: {
       aadhaar: '',
       incomeCertificate: '',
@@ -129,14 +136,14 @@ export default function ProfilePage() {
     const missing = [];
     if (!form.fullName) missing.push('Full Name');
     if (!form.mobileNumber) missing.push('Mobile Number');
-    if (!form.age) missing.push('Age');
-    if (!form.state) missing.push('Residency State');
+    if (!form.dob && !form.age) missing.push('Date of Birth');
+    if (!form.state) missing.push('Domicile State');
+    if (!form.district) missing.push('District');
     if (!form.educationLevel) missing.push('Education Level');
     if (!form.stream) missing.push('Education Stream');
     if (!form.cgpaOrPercentage) missing.push('Academic Score / Marks %');
     if (form.annualFamilyIncome === '') missing.push('Annual Family Income');
-    if (!form.documentUploads?.incomeCertificate) missing.push('Income Certificate Document');
-    if (!form.documentUploads?.marksheet && !form.documentUploads?.marksheet12th && !form.documentUploads?.marksheet10th) missing.push('Marksheet Document');
+    if (!form.category) missing.push('Category');
     return missing;
   };
 
@@ -144,12 +151,16 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (profile) {
+      const initialDob = profile.dob || '';
+      const calculated = calculateAge(initialDob);
       setForm({
-        fullName: profile.fullName || '',
-        age: profile.age || '',
+        fullName: profile.fullName || user?.name || '',
+        dob: initialDob,
+        age: calculated !== null ? calculated : (profile.age || ''),
         gender: profile.gender || 'Male',
         state: profile.state || '',
         district: profile.district || '',
+        residentialArea: profile.residentialArea || 'Urban',
         mobileNumber: profile.mobileNumber || '',
         email: profile.email || user?.email || '',
         educationLevel: profile.educationLevel || '',
@@ -162,7 +173,10 @@ export default function ProfilePage() {
         bplStatus: profile.bplStatus || false,
         category: profile.category || 'General',
         minorityStatus: profile.minorityStatus || false,
+        minorityCommunity: profile.minorityCommunity || 'Not Applicable',
         disabilityStatus: profile.disabilityStatus || false,
+        pwdType: profile.pwdType || 'Not Applicable',
+        pwdPercentage: profile.pwdPercentage || 0,
         documentUploads: {
           aadhaar: profile.documentUploads?.aadhaar || '',
           incomeCertificate: profile.documentUploads?.incomeCertificate || '',
@@ -176,11 +190,34 @@ export default function ProfilePage() {
           disabilityCertificate: profile.documentUploads?.disabilityCertificate || ''
         }
       });
+    } else if (user) {
+      setForm(prev => ({
+        ...prev,
+        fullName: prev.fullName || user.name || '',
+        email: prev.email || user.email || ''
+      }));
     }
   }, [profile, user]);
 
   const updateField = (key, value) => {
-    setForm(prev => ({ ...prev, [key]: value }));
+    if (key === 'dob') {
+      const computedAge = calculateAge(value);
+      setForm(prev => ({
+        ...prev,
+        dob: value,
+        age: computedAge !== null ? computedAge : prev.age
+      }));
+    } else if (key === 'state') {
+      // Reset district if state changes and district not in new list
+      const availableDistricts = STATES_AND_DISTRICTS[value] || [];
+      setForm(prev => ({
+        ...prev,
+        state: value,
+        district: availableDistricts.includes(prev.district) ? prev.district : ''
+      }));
+    } else {
+      setForm(prev => ({ ...prev, [key]: value }));
+    }
   };
 
   const handleCheckbox = (key, val) => {
@@ -191,15 +228,15 @@ export default function ProfilePage() {
     let score = 0;
     const totalFields = 10;
     if (form.fullName) score++;
-    if (form.age) score++;
+    if (form.dob || form.age) score++;
     if (form.state) score++;
+    if (form.district) score++;
     if (form.mobileNumber) score++;
     if (form.educationLevel) score++;
     if (form.stream) score++;
     if (form.cgpaOrPercentage) score++;
     if (form.annualFamilyIncome !== '') score++;
-    if (form.documentUploads?.incomeCertificate) score++;
-    if (form.documentUploads?.marksheet || form.documentUploads?.marksheet10th || form.documentUploads?.marksheet12th || form.documentUploads?.marksheetCollege || form.documentUploads?.marksheetOther) score++;
+    if (form.category) score++;
     return Math.round((score / totalFields) * 100);
   };
 
@@ -207,13 +244,47 @@ export default function ProfilePage() {
 
   const handleSave = async (e) => {
     if (e) e.preventDefault();
+
+    // Validation
+    if (!form.fullName || form.fullName.trim().length < 2) {
+      toast.error('Please enter a valid full name.');
+      setActiveTab('personal');
+      return;
+    }
+    if (!form.mobileNumber || !/^\+?\d{10,12}$/.test(form.mobileNumber.replace(/\s+/g, ''))) {
+      toast.error('Please enter a valid 10-digit mobile number.');
+      setActiveTab('personal');
+      return;
+    }
+    if (!form.dob) {
+      toast.error('Please select your Date of Birth.');
+      setActiveTab('personal');
+      return;
+    }
+    if (!form.state) {
+      toast.error('Please select your Domicile State.');
+      setActiveTab('personal');
+      return;
+    }
+    if (!form.district) {
+      toast.error('Please select your District.');
+      setActiveTab('personal');
+      return;
+    }
+    if (!form.category) {
+      toast.error('Please select your Category.');
+      setActiveTab('personal');
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
         ...form,
-        age: Number(form.age),
-        annualFamilyIncome: Number(form.annualFamilyIncome),
-        cgpaOrPercentage: Number(form.cgpaOrPercentage)
+        age: Number(form.age) || calculateAge(form.dob) || 18,
+        annualFamilyIncome: Number(form.annualFamilyIncome) || 0,
+        cgpaOrPercentage: Number(form.cgpaOrPercentage) || 0,
+        pwdPercentage: Number(form.pwdPercentage) || 0
       };
       const { data } = await userAPI.saveProfile(payload);
       updateProfile(data.profile);
@@ -252,17 +323,14 @@ export default function ProfilePage() {
     formData.append('customName', customName);
 
     try {
-      // 1. Upload to Document Vault (saves file on backend and updates schema)
       const { data: uploadData } = await documentAPI.upload(formData);
       const filePath = uploadData.document.filePath;
       toast.success(`${selectedFile.name} uploaded successfully!`);
 
-      // 2. Trigger OCR verification using file
       const { data: ocrData } = await aiAPI.verifyDocument(docType, filePath);
       setOcrResults(prev => ({ ...prev, [docType]: ocrData }));
       toast.success(`${category} details verified & synchronized!`);
 
-      // 3. Auto-fill profile fields
       if (docType === 'incomeCertificate') {
         updateField('annualFamilyIncome', ocrData.extractedData.annualFamilyIncome);
       } else if (['marksheet', 'marksheet10th', 'marksheet12th', 'marksheetCollege', 'marksheetOther'].includes(docType)) {
@@ -277,7 +345,6 @@ export default function ProfilePage() {
         updateField('state', ocrData.extractedData.state);
       }
 
-      // 4. Update the profile local state for document uploads
       setForm(prev => ({
         ...prev,
         documentUploads: {
@@ -294,7 +361,6 @@ export default function ProfilePage() {
     }
   };
 
-
   const TABS = [
     { id: 'personal', label: t('personalDetails', language), icon: User },
     { id: 'academic', label: t('academicDetails', language), icon: BookOpen },
@@ -302,19 +368,21 @@ export default function ProfilePage() {
     { id: 'documents', label: t('documentsUpload', language), icon: FileText }
   ];
 
+  const availableDistricts = STATES_AND_DISTRICTS[form.state] || [];
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
       <SectionHeader 
         title={t('myProfile', language)}
-        subtitle="Manage your academic, financial, and caste attributes to identify matches."
+        subtitle="Manage your personal, academic, financial, and eligibility attributes to identify matched scholarships."
       />
 
-      {/* Progress & Profile Photo Header Card */}
+      {/* Progress & Profile Overview Header Card */}
       <div className="card glass-card p-6 space-y-6">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
           
           {/* Profile Photo Avatar Box */}
-          <div className="flex flex-col items-center gap-3 flex-shrink-0">
+          <div className="flex flex-col items-center gap-2.5 flex-shrink-0">
             <div className="relative group">
               <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg border-4 border-white dark:border-slate-800 bg-emerald-500/10 flex items-center justify-center">
                 {previewImage ? (
@@ -331,7 +399,7 @@ export default function ProfilePage() {
                 <input 
                   type="file" 
                   className="hidden" 
-                  accept="image/jpeg,image/png,image/jpg" 
+                  accept="image/jpeg,image/png,image/jpg,image/webp" 
                   onChange={handleAvatarUpload} 
                 />
               </label>
@@ -346,20 +414,27 @@ export default function ProfilePage() {
                 </button>
               )}
             </div>
-            <span className="text-[10px] text-gray-400 dark:text-slate-500">JPG, JPEG, PNG (max 5MB)</span>
+            <span className="text-[10px] text-gray-400 dark:text-slate-500">JPG, JPEG, PNG, WebP (max 2MB)</span>
           </div>
 
           {/* Student Info & Progress Bar */}
           <div className="flex-1 w-full text-center sm:text-left space-y-3">
             <div>
-              <h2 className="text-2xl font-black text-gray-900 dark:text-slate-100">
-                {form.fullName || user?.name || 'Indal Kumar'}
-              </h2>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-slate-100">
+                  {form.fullName || user?.name || 'Student Name'}
+                </h2>
+                {user?.email && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1">
+                    <Check className="w-3 h-3 text-emerald-500" /> Verified
+                  </span>
+                )}
+              </div>
               <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
                 Student Candidate • {form.educationLevel || '12th Pass'} ({form.stream || 'Science'})
               </p>
               <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-                {form.state || 'Maharashtra'} • Category: {form.category || 'General'} • Family Income: ₹{form.annualFamilyIncome ? Number(form.annualFamilyIncome).toLocaleString('en-IN') : '0'}/yr
+                {form.state ? `${form.state}${form.district ? `, ${form.district}` : ''}` : 'Location Not Set'} • Category: {form.category || 'General'} • Family Income: ₹{form.annualFamilyIncome ? Number(form.annualFamilyIncome).toLocaleString('en-IN') : '0'}/yr
               </p>
             </div>
 
@@ -417,56 +492,254 @@ export default function ProfilePage() {
         
         {/* Tab 1: Personal Details */}
         {activeTab === 'personal' && (
-          <div className="space-y-4 animate-fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="label">Full Name *</label>
-                <input 
-                  type="text" className="input" placeholder="e.g. Priya Sharma" required
-                  value={form.fullName} onChange={(e) => updateField('fullName', e.target.value)}
-                />
+          <div className="space-y-6 animate-fade-in">
+            
+            {/* Top Compact Profile Photo Upload Box */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 p-4 rounded-2xl bg-gray-50/50 dark:bg-slate-900/40 border border-gray-100 dark:border-slate-800/80">
+              <div className="w-20 h-20 rounded-full overflow-hidden shadow border-2 border-white dark:border-slate-800 bg-emerald-500/10 flex-shrink-0 flex items-center justify-center">
+                {previewImage ? (
+                  <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <Avatar name={form.fullName || user?.name || 'Student'} size="xl" src={user?.avatar} />
+                )}
               </div>
-              <div>
-                <label className="label">Mobile Number *</label>
-                <input 
-                  type="text" className="input" placeholder="e.g. 9876543210" required
-                  value={form.mobileNumber} onChange={(e) => updateField('mobileNumber', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="label">Age *</label>
-                <input 
-                  type="number" className="input" placeholder="e.g. 21" min="5" max="99" required
-                  value={form.age} onChange={(e) => updateField('age', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="label">Gender</label>
-                <select 
-                  className="select"
-                  value={form.gender} onChange={(e) => updateField('gender', e.target.value)}
-                >
-                  {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="label">Residency State *</label>
-                <select 
-                  className="select" required
-                  value={form.state} onChange={(e) => updateField('state', e.target.value)}
-                >
-                  <option value="">Select state</option>
-                  {STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="label">District *</label>
-                <input 
-                  type="text" className="input" placeholder="e.g. Mumbai" required
-                  value={form.district} onChange={(e) => updateField('district', e.target.value)}
-                />
+              <div className="space-y-1.5 text-center sm:text-left">
+                <h4 className="text-xs font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wider">Profile Photo</h4>
+                <p className="text-[11px] text-gray-500 dark:text-slate-400">JPG, JPEG, PNG or WebP • Max file size: 2 MB</p>
+                <div className="flex items-center gap-2 pt-0.5 justify-center sm:justify-start">
+                  <label className="btn btn-primary btn-xs text-xs px-3 py-1 cursor-pointer font-bold">
+                    Change Photo
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/jpeg,image/png,image/jpg,image/webp" 
+                      onChange={handleAvatarUpload} 
+                    />
+                  </label>
+                  {(user?.avatar || previewImage) && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveAvatar}
+                      className="btn btn-ghost btn-xs text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 font-semibold"
+                    >
+                      Remove Photo
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* 1. PERSONAL INFORMATION */}
+            <div className="space-y-3">
+              <div className="border-b border-gray-100 dark:border-slate-800 pb-2">
+                <h3 className="text-xs font-extrabold text-primary-600 dark:text-primary-400 uppercase tracking-widest">
+                  1. Personal Information
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Full Name */}
+                <div>
+                  <label className="label">Full Name *</label>
+                  <input 
+                    type="text" className="input" placeholder="e.g. Rahul Sharma" required
+                    value={form.fullName} onChange={(e) => updateField('fullName', e.target.value)}
+                  />
+                </div>
+
+                {/* Mobile Number */}
+                <div>
+                  <label className="label">Mobile Number *</label>
+                  <input 
+                    type="tel" className="input" placeholder="e.g. 9876543210" required
+                    value={form.mobileNumber} onChange={(e) => updateField('mobileNumber', e.target.value)}
+                  />
+                </div>
+
+                {/* Email Address */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="label mb-0">Email Address *</label>
+                    <span className="text-[10px] text-emerald-500 font-bold flex items-center gap-0.5">
+                      <Check className="w-3 h-3" /> Verified
+                    </span>
+                  </div>
+                  <input 
+                    type="email" className="input bg-gray-50 dark:bg-slate-900/80 cursor-not-allowed opacity-90" 
+                    value={form.email} readOnly disabled
+                  />
+                </div>
+
+                {/* Date of Birth & Auto Age */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="label mb-0">Date of Birth *</label>
+                    {form.dob && calculateAge(form.dob) !== null && (
+                      <span className="text-[11px] font-bold text-primary-400 bg-primary-500/10 px-2 py-0.5 rounded-md font-mono">
+                        Age: {calculateAge(form.dob)} years
+                      </span>
+                    )}
+                  </div>
+                  <input 
+                    type="date" 
+                    className="input" 
+                    required
+                    max={new Date().toISOString().split('T')[0]}
+                    value={form.dob} 
+                    onChange={(e) => updateField('dob', e.target.value)}
+                  />
+                </div>
+
+                {/* Gender */}
+                <div>
+                  <label className="label">Gender *</label>
+                  <select 
+                    className="select" required
+                    value={form.gender} onChange={(e) => updateField('gender', e.target.value)}
+                  >
+                    {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. RESIDENTIAL DETAILS */}
+            <div className="space-y-3 pt-2">
+              <div className="border-b border-gray-100 dark:border-slate-800 pb-2">
+                <h3 className="text-xs font-extrabold text-primary-600 dark:text-primary-400 uppercase tracking-widest">
+                  2. Residential Details
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Domicile State */}
+                <div>
+                  <label className="label">Domicile State *</label>
+                  <select 
+                    className="select" required
+                    value={form.state} onChange={(e) => updateField('state', e.target.value)}
+                  >
+                    <option value="">Select Domicile State</option>
+                    {STATES_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+
+                {/* District */}
+                <div>
+                  <label className="label">District *</label>
+                  <select 
+                    className="select" required
+                    disabled={!form.state}
+                    value={form.district} onChange={(e) => updateField('district', e.target.value)}
+                  >
+                    <option value="">{form.state ? 'Select District' : 'Select State First'}</option>
+                    {availableDistricts.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+
+                {/* Residential Area */}
+                <div>
+                  <label className="label">Residential Area</label>
+                  <select 
+                    className="select"
+                    value={form.residentialArea} onChange={(e) => updateField('residentialArea', e.target.value)}
+                  >
+                    {RESIDENTIAL_AREAS.map(ra => <option key={ra} value={ra}>{ra}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. ELIGIBILITY INFORMATION */}
+            <div className="space-y-3 pt-2">
+              <div className="border-b border-gray-100 dark:border-slate-800 pb-2">
+                <h3 className="text-xs font-extrabold text-primary-600 dark:text-primary-400 uppercase tracking-widest">
+                  3. Eligibility Information
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Category */}
+                <div>
+                  <label className="label">Category *</label>
+                  <select 
+                    className="select" required
+                    value={form.category} onChange={(e) => updateField('category', e.target.value)}
+                  >
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+
+                {/* Minority Status */}
+                <div>
+                  <label className="label">Minority Status</label>
+                  <select 
+                    className="select"
+                    value={form.minorityStatus ? 'Yes' : 'No'} 
+                    onChange={(e) => updateField('minorityStatus', e.target.value === 'Yes')}
+                  >
+                    <option value="No">No</option>
+                    <option value="Yes">Yes</option>
+                  </select>
+                </div>
+
+                {/* Person with Disability (PwD) */}
+                <div>
+                  <label className="label">Person with Disability (PwD)</label>
+                  <select 
+                    className="select"
+                    value={form.disabilityStatus ? 'Yes' : 'No'} 
+                    onChange={(e) => updateField('disabilityStatus', e.target.value === 'Yes')}
+                  >
+                    <option value="No">No</option>
+                    <option value="Yes">Yes</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Conditional Fields */}
+              <div className="space-y-3 pt-1">
+                {/* Conditional Minority Community */}
+                {form.minorityStatus && (
+                  <div className="p-3.5 rounded-2xl bg-slate-900/50 border border-slate-800 animate-fade-in max-w-md">
+                    <label className="label">Minority Community *</label>
+                    <select 
+                      className="select" required
+                      value={form.minorityCommunity} onChange={(e) => updateField('minorityCommunity', e.target.value)}
+                    >
+                      <option value="Not Applicable">Select Community</option>
+                      {MINORITY_COMMUNITIES.map(mc => <option key={mc} value={mc}>{mc}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                {/* Conditional Disability Details */}
+                {form.disabilityStatus && (
+                  <div className="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
+                    <div>
+                      <label className="label">Disability Type *</label>
+                      <select 
+                        className="select" required
+                        value={form.pwdType} onChange={(e) => updateField('pwdType', e.target.value)}
+                      >
+                        <option value="Not Applicable">Select Disability Type</option>
+                        {PWD_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="label">Disability Percentage (%)</label>
+                      <input 
+                        type="number" className="input" placeholder="e.g. 40" min="1" max="100"
+                        value={form.pwdPercentage} onChange={(e) => updateField('pwdPercentage', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
+
           </div>
         )}
 
@@ -561,18 +834,18 @@ export default function ProfilePage() {
 
               <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-slate-700/50">
                 <input 
-                  type="checkbox" id="minorityStatus" className="w-4 h-4 bg-gray-100 rounded border-gray-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-primary-500"
+                  type="checkbox" id="minorityStatusCheck" className="w-4 h-4 bg-gray-100 rounded border-gray-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-primary-500"
                   checked={form.minorityStatus} onChange={(e) => handleCheckbox('minorityStatus', e.target.checked)}
                 />
-                <label htmlFor="minorityStatus" className="text-xs font-semibold text-gray-700 dark:text-slate-350 cursor-pointer">Minority Reservation Status</label>
+                <label htmlFor="minorityStatusCheck" className="text-xs font-semibold text-gray-700 dark:text-slate-350 cursor-pointer">Minority Reservation Status</label>
               </div>
 
               <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-slate-700/50">
                 <input 
-                  type="checkbox" id="disabilityStatus" className="w-4 h-4 bg-gray-100 rounded border-gray-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-primary-500"
+                  type="checkbox" id="disabilityStatusCheck" className="w-4 h-4 bg-gray-100 rounded border-gray-300 dark:bg-slate-700 dark:border-slate-600 focus:ring-primary-500"
                   checked={form.disabilityStatus} onChange={(e) => handleCheckbox('disabilityStatus', e.target.checked)}
                 />
-                <label htmlFor="disabilityStatus" className="text-xs font-semibold text-gray-700 dark:text-slate-350 cursor-pointer">Physically Disabled (PwD)</label>
+                <label htmlFor="disabilityStatusCheck" className="text-xs font-semibold text-gray-700 dark:text-slate-350 cursor-pointer">Physically Disabled (PwD)</label>
               </div>
             </div>
           </div>
@@ -695,83 +968,11 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* College Marksheet Slot */}
+              {/* Domicile Certificate Slot */}
               <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700/80 rounded-3xl space-y-3 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-bold text-gray-700 dark:text-slate-350">College Marksheet</span>
-                    {form.documentUploads?.marksheetCollege ? (
-                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">✓ Verified</span>
-                    ) : (
-                      <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">Missing File</span>
-                    )}
-                  </div>
-
-                  <label className="py-8 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer relative hover:bg-gray-100/50 dark:hover:bg-slate-800/50 transition-colors">
-                    <input
-                      type="file"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      onChange={(e) => handleProfileFileChange(e, 'marksheetCollege')}
-                      disabled={ocrLoading['marksheetCollege']}
-                      accept=".pdf,.png,.jpg,.jpeg"
-                    />
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
-                      {form.documentUploads?.marksheetCollege 
-                        ? form.documentUploads.marksheetCollege.split('/').pop() 
-                        : 'Choose College Marksheet file'}
-                    </span>
-                  </label>
-                </div>
-
-                {ocrLoading['marksheetCollege'] && (
-                  <div className="flex items-center justify-center gap-2 text-[10px] text-primary-600 font-bold animate-pulse pt-2">
-                    <Spinner className="w-3.5 h-3.5" /> Uploading & OCR scanning...
-                  </div>
-                )}
-              </div>
-
-              {/* Other Academic Document Slot */}
-              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700/80 rounded-3xl space-y-3 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-bold text-gray-700 dark:text-slate-350">Other Academic Document</span>
-                    {form.documentUploads?.marksheetOther ? (
-                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">✓ Verified</span>
-                    ) : (
-                      <span className="text-[10px] text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">Missing File</span>
-                    )}
-                  </div>
-
-                  <label className="py-8 flex flex-col items-center justify-center bg-gray-50/50 dark:bg-slate-900/30 rounded-2xl border border-gray-100 dark:border-slate-800 cursor-pointer relative hover:bg-gray-100/50 dark:hover:bg-slate-800/50 transition-colors">
-                    <input
-                      type="file"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      onChange={(e) => handleProfileFileChange(e, 'marksheetOther')}
-                      disabled={ocrLoading['marksheetOther']}
-                      accept=".pdf,.png,.jpg,.jpeg"
-                    />
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="font-bold text-[10px] text-gray-500 dark:text-slate-400 font-mono text-center px-3 truncate w-full">
-                      {form.documentUploads?.marksheetOther 
-                        ? form.documentUploads.marksheetOther.split('/').pop() 
-                        : 'Choose Other Academic Document file'}
-                    </span>
-                  </label>
-                </div>
-
-                {ocrLoading['marksheetOther'] && (
-                  <div className="flex items-center justify-center gap-2 text-[10px] text-primary-600 font-bold animate-pulse pt-2">
-                    <Spinner className="w-3.5 h-3.5" /> Uploading & OCR scanning...
-                  </div>
-                )}
-              </div>
-
-              {/* Domicile Slot */}
-              <div className="p-4 border border-dashed border-gray-200 dark:border-slate-700/80 rounded-3xl space-y-3 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-bold text-gray-700 dark:text-slate-350">Domicile / Residency Certificate</span>
+                    <span className="font-bold text-gray-700 dark:text-slate-350">Domicile Certificate</span>
                     {form.documentUploads?.domicile ? (
                       <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">✓ Verified</span>
                     ) : (
@@ -843,7 +1044,6 @@ export default function ProfilePage() {
           </div>
         )}
 
-
         {/* Action Controls */}
         <div className="flex justify-between items-center border-t border-gray-100 dark:border-slate-700/80 pt-5 gap-4">
           <div>
@@ -854,7 +1054,7 @@ export default function ProfilePage() {
                   const idx = TABS.findIndex(t => t.id === activeTab);
                   setActiveTab(TABS[idx - 1].id);
                 }}
-                className="btn btn-ghost px-4 py-2 flex items-center gap-1.5"
+                className="btn btn-ghost px-4 py-2 flex items-center gap-1.5 font-bold text-xs"
               >
                 <ChevronLeft className="w-4 h-4" /> {t('prevStep', language)}
               </button>
@@ -866,10 +1066,10 @@ export default function ProfilePage() {
               type="button"
               disabled={saving}
               onClick={handleSave}
-              className="btn btn-primary px-6 flex items-center gap-2"
+              className="btn btn-primary px-6 py-2.5 flex items-center gap-2 font-bold text-xs shadow-lg shadow-primary-600/20"
             >
               {saving ? <Spinner /> : <Save className="w-4 h-4" />}
-              {saving ? 'Saving...' : t('saveProfile', language)}
+              {saving ? 'Saving Profile...' : 'Save Profile & Verify'}
             </button>
 
             {activeTab !== 'documents' ? (
@@ -879,7 +1079,7 @@ export default function ProfilePage() {
                   const idx = TABS.findIndex(t => t.id === activeTab);
                   setActiveTab(TABS[idx + 1].id);
                 }}
-                className="btn btn-outline px-4 py-2 flex items-center gap-1.5"
+                className="btn btn-outline px-4 py-2 flex items-center gap-1.5 font-bold text-xs"
               >
                 {t('nextStep', language)} <ChevronRight className="w-4 h-4" />
               </button>
