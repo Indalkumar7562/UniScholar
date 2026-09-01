@@ -242,8 +242,11 @@ export default function ProfilePage() {
 
   const pct = calculateCompleteness();
 
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState(false);
+
   const handleSave = async (e) => {
     if (e) e.preventDefault();
+    setSaveSuccessMsg(false);
 
     // Validation
     if (!form.fullName || form.fullName.trim().length < 2) {
@@ -288,10 +291,15 @@ export default function ProfilePage() {
       };
       const { data } = await userAPI.saveProfile(payload);
       updateProfile(data.profile);
-      toast.success(t('saveProfile', language) + ' successfully!');
+      setSaveSuccessMsg(true);
+      toast.success('✓ Profile saved successfully! Your personal details have been updated. You can now proceed to Academic Details.', { duration: 4000 });
       await fetchProfile();
+      setTimeout(() => {
+        setSaveSuccessMsg(false);
+      }, 4000);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update profile');
+      setSaveSuccessMsg(false);
+      toast.error(err.response?.data?.message || '⚠ Unable to save your profile. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -1040,6 +1048,19 @@ export default function ProfilePage() {
                 )}
               </div>
 
+            </div>
+          </div>
+        )}
+
+        {/* Save Success Guidance Banner */}
+        {saveSuccessMsg && (
+          <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-start gap-3 animate-fade-in my-2">
+            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
+            <div>
+              <p className="font-bold text-xs">✓ Profile saved successfully!</p>
+              <p className="text-[11px] text-emerald-300/80 mt-0.5">
+                Your personal details have been updated. You can now proceed to Academic Details.
+              </p>
             </div>
           </div>
         )}
