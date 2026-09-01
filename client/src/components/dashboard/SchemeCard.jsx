@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Bookmark, ExternalLink, Calendar } from 'lucide-react';
 import { Badge } from '../ui/index.jsx';
-import { userAPI } from '../../services/api';
+import { userAPI, applicationAPI } from '../../services/api';
 import { getDeadlineStatus, getDaysRemaining, formatDate, isExpired } from '../../utils/deadline.utils';
 import { showToast } from '../../utils/toastQueue';
 
@@ -43,6 +43,8 @@ export const handleOfficialWebsite = (scheme, e) => {
 export default function SchemeCard({ scheme, showEligibility = false, onViewDetails, onApplyInternal, isApplied = false }) {
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarking, setBookmarking] = useState(false);
+  const [isAppliedState, setIsAppliedState] = useState(isApplied);
+  const [applying, setApplying] = useState(false);
 
   const deadlineStatus = getDeadlineStatus(scheme);
   const daysRemaining = getDaysRemaining(scheme);
@@ -71,6 +73,41 @@ export default function SchemeCard({ scheme, showEligibility = false, onViewDeta
       showToast('Failed to update bookmark', 'error');
     } finally {
       setBookmarking(false);
+    }
+  };
+
+  const handleApplyClick = async (e) => {
+    if (e && typeof e.stopPropagation === 'function') {
+      e.stopPropagation();
+    }
+
+    if (onApplyInternal) {
+      onApplyInternal(scheme, e);
+      return;
+    }
+
+    const token = localStorage.getItem('uss_token');
+    if (!token) {
+      showToast('Please sign in to your student account to apply.', 'info');
+      window.location.href = '/login';
+      return;
+    }
+
+    try {
+      setApplying(true);
+      await applicationAPI.upsert({
+        schemeId: scheme._id,
+        status: 'Submitted'
+      });
+      setIsAppliedState(true);
+      showToast(`✓ Application for "${scheme.name}" submitted successfully! Track status in My Applications.`, 'success');
+      setTimeout(() => {
+        window.location.href = '/applications';
+      }, 1000);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to submit application. Please try again.', 'error');
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -166,20 +203,17 @@ export default function SchemeCard({ scheme, showEligibility = false, onViewDeta
           {/* 2. Apply (Internal UniScholar Action) */}
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onApplyInternal?.(scheme, e);
-            }}
-            disabled={expired || isApplied}
-            className={`btn px-2.5 py-1 text-[11px] font-bold rounded-lg ${
-              isApplied
+            onClick={handleApplyClick}
+            disabled={expired || isAppliedState || applying}
+            className={`btn px-2.5 py-1 text-[11px] font-bold rounded-lg cursor-pointer transition-all active:scale-95 ${
+              isAppliedState
                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
                 : expired
                 ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
                 : 'btn-primary shadow-sm'
             }`}
           >
-            {isApplied ? 'Applied ✓' : expired ? 'Closed' : 'Apply'}
+            {applying ? 'Submitting...' : isAppliedState ? 'Applied ✓' : expired ? 'Closed' : 'Apply'}
           </button>
 
           {/* 3. Official Website (External Link) */}

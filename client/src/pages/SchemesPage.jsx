@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { schemeAPI } from '../services/api';
+import { schemeAPI, applicationAPI } from '../services/api';
 import { SectionHeader, SkeletonCard, EmptyState } from '../components/ui/index.jsx';
 import SchemeCard from '../components/dashboard/SchemeCard.jsx';
 import { Search, SlidersHorizontal } from 'lucide-react';
@@ -17,6 +17,20 @@ export default function SchemesPage() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [pagination, setPagination] = useState({});
   const [page, setPage] = useState(1);
+  const [appliedSchemeIds, setAppliedSchemeIds] = useState([]);
+
+  useEffect(() => {
+    const fetchApplied = async () => {
+      const token = localStorage.getItem('uss_token');
+      if (!token) return;
+      try {
+        const { data } = await applicationAPI.getAll();
+        const ids = (data.applications || []).map(a => a.scheme?._id || a.scheme);
+        setAppliedSchemeIds(ids);
+      } catch (e) {}
+    };
+    fetchApplied();
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -118,6 +132,7 @@ export default function SchemesPage() {
               <SchemeCard
                 key={s._id}
                 scheme={s}
+                isApplied={appliedSchemeIds.includes(s._id)}
                 onViewDetails={() => navigate(`/schemes/${s._id}`)}
               />
             ))}
