@@ -26,7 +26,7 @@ export default function AcademicDetailsSection({
   academicDetails,
   setAcademicDetails
 }) {
-  const currentLevel = form.educationLevel || 'Graduation';
+  const currentLevel = form?.educationLevel || 'Graduation';
 
   // Ensure internal academicDetails state exists
   const details = academicDetails || {};

@@ -38,7 +38,8 @@ const calculateAge = (dobString) => {
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { user, profile, updateProfile, updateUser, language, fetchProfile } = useAuth();
+  const { user, profile, updateProfile, updateUser, language, fetchProfile, loading } = useAuth();
+  const [fetchingProfile, setFetchingProfile] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const [saving, setSaving] = useState(false);
   const [ocrLoading, setOcrLoading] = useState({});
@@ -160,6 +161,22 @@ export default function ProfilePage() {
   const missingFieldsList = getMissingFields();
 
   useEffect(() => {
+    const loadProfileIfNeeded = async () => {
+      if (!profile && fetchProfile) {
+        setFetchingProfile(true);
+        try {
+          await fetchProfile();
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setFetchingProfile(false);
+        }
+      }
+    };
+    loadProfileIfNeeded();
+  }, []);
+
+  useEffect(() => {
     if (profile) {
       const initialDob = profile.dob || '';
       const calculated = calculateAge(initialDob);
@@ -211,6 +228,15 @@ export default function ProfilePage() {
       }));
     }
   }, [profile, user]);
+
+  if (loading || fetchingProfile) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 space-y-4 animate-pulse">
+        <Spinner className="w-10 h-10 text-primary-500" />
+        <p className="text-sm font-bold text-gray-500 dark:text-slate-400">Loading student profile...</p>
+      </div>
+    );
+  }
 
   const updateField = (key, value) => {
     if (key === 'dob') {
