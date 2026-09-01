@@ -38,7 +38,7 @@ const backfillStudentIds = async () => {
 // Helper to seed demo accounts on demand
 const ensureDemoAccounts = async () => {
   try {
-    const adminDemoExists = await User.findOne({ email: 'admin@demo.com' });
+    let adminDemoExists = await User.findOne({ email: 'admin@demo.com' });
     if (!adminDemoExists) {
       await User.create({
         name: 'UniScholar System Admin',
@@ -47,9 +47,12 @@ const ensureDemoAccounts = async () => {
         role: 'admin',
         isEmailVerified: true
       });
+    } else if (adminDemoExists.role !== 'admin') {
+      adminDemoExists.role = 'admin';
+      await adminDemoExists.save();
     }
 
-    const adminGovExists = await User.findOne({ email: 'admin@uss.gov.in' });
+    let adminGovExists = await User.findOne({ email: 'admin@uss.gov.in' });
     if (!adminGovExists) {
       await User.create({
         name: 'USS Platform Administrator',
@@ -58,6 +61,9 @@ const ensureDemoAccounts = async () => {
         role: 'admin',
         isEmailVerified: true
       });
+    } else if (adminGovExists.role !== 'admin') {
+      adminGovExists.role = 'admin';
+      await adminGovExists.save();
     }
 
     const partnerExists = await User.findOne({ email: 'partner@demo.com' });
@@ -170,6 +176,12 @@ const login = async (req, res) => {
 
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // Auto-promote admin emails to admin role if needed
+    if (['admin@uss.gov.in', 'admin@demo.com'].includes(user.email.toLowerCase()) && user.role !== 'admin') {
+      user.role = 'admin';
+      await user.save();
     }
 
     // Ensure studentId is backfilled if missing on login

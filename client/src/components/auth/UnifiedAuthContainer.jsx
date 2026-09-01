@@ -125,21 +125,22 @@ export default function UnifiedAuthContainer({ role = 'student', initialTab = 'l
 
     setLoginLoading(true);
     try {
-      const user = await login(loginForm);
+      const res = await login(loginForm);
+      const userObj = res?.user || res;
       
       // Strict role verification on frontend redirect
-      if (role === 'admin' && user?.role !== 'admin') {
+      if (role === 'admin' && userObj?.role !== 'admin') {
         setLoginError('Account is not authorized for Admin Portal');
         setLoginLoading(false);
         return;
       }
-      if (role === 'partner' && user?.role !== 'partner' && user?.role !== 'admin') {
+      if (role === 'partner' && userObj?.role !== 'partner' && userObj?.role !== 'admin') {
         setLoginError('Account is not authorized for Partner Portal');
         setLoginLoading(false);
         return;
       }
 
-      showToast(`✓ Welcome back, ${user?.name || 'User'}!`, 'success');
+      showToast(`✓ Welcome back, ${userObj?.name || 'User'}!`, 'success');
       navigate(config.dashboardRoute);
     } catch (err) {
       setLoginError(err.response?.data?.message || 'Invalid email or password. Please try again.');
