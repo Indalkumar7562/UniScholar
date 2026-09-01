@@ -26,6 +26,8 @@ import OnlineDegrees        from './pages/OnlineDegrees.jsx';
 import ArticlesPage         from './pages/ArticlesPage.jsx';
 import SupportProgramme     from './pages/SupportProgramme.jsx';
 import ResultsPublicPage    from './pages/ResultsPublicPage.jsx';
+import TermsPage            from './pages/TermsPage.jsx';
+import PrivacyPage          from './pages/PrivacyPage.jsx';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -52,6 +54,8 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login"    element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+      <Route path="/terms"    element={<TermsPage />} />
+      <Route path="/privacy"  element={<PrivacyPage />} />
       <Route path="/services" element={<StudentServices />} />
       <Route path="/career" element={<CareerGuidance />} />
       <Route path="/partner" element={<BecomePartner />} />
