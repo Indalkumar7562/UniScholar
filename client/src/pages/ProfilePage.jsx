@@ -380,7 +380,6 @@ export default function ProfilePage() {
 
       const { data: ocrData } = await aiAPI.verifyDocument(docType, filePath);
       setOcrResults(prev => ({ ...prev, [docType]: ocrData }));
-      showToast(`${docLabel} details verified successfully.`, 'success');
 
       if (docType === 'incomeCertificate' && ocrData?.extractedData?.annualFamilyIncome) {
         updateField('annualFamilyIncome', ocrData.extractedData.annualFamilyIncome);

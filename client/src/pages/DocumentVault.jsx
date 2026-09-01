@@ -8,6 +8,7 @@ import {
   FolderOpen, ShieldCheck, Database, HardDrive, FileBadge, AlertTriangle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { showToast } from '../utils/toastQueue';
 
 const CATEGORIES = ['Academic', 'Identity', 'Income', 'Residence', 'Category Certificate', 'Other'];
 
@@ -62,13 +63,13 @@ export default function DocumentVault() {
 
     try {
       await documentAPI.upload(formData);
-      toast.success('Document uploaded and verified successfully');
+      showToast(`${customName || 'Document'} uploaded successfully.`, 'success');
       setFile(null);
       setCustomName('');
       await loadDocuments();
       await fetchProfile(); // refresh profile uploads status
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Upload failed');
+      showToast(err.response?.data?.message || 'Upload failed.', 'error');
     } finally {
       setUploading(false);
     }
@@ -78,11 +79,11 @@ export default function DocumentVault() {
     if (!window.confirm('Are you sure you want to delete this document from your vault?')) return;
     try {
       await documentAPI.delete(id);
-      toast.success('Document removed');
+      showToast('Document removed from vault.', 'success');
       await loadDocuments();
       await fetchProfile(); // refresh profile uploads status
     } catch (err) {
-      toast.error('Failed to delete document');
+      showToast('Failed to delete document.', 'error');
     }
   };
 
