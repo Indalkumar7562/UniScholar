@@ -9,7 +9,7 @@ import {
   LayoutDashboard, User, CheckCircle, BookOpen,
   Trophy, LogOut, Menu, X, Moon, Sun, GraduationCap,
   Sparkles, Shield, Bell, Globe, Check, Grid,
-  Compass, Laptop, FileText, DollarSign, Award, Heart
+  Compass, Laptop, FileText, DollarSign, Award, Heart, FileCheck
 } from 'lucide-react';
 import ChatbotWidget from '../chatbot/ChatbotWidget.jsx';
 
