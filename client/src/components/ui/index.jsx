@@ -33,14 +33,36 @@ export const SkeletonCard = () => (
 
 // ─── Avatar ────────────────────────────────────────────────────────────────────
 export const Avatar = ({ name = '?', size = 'md', src = '', className = '' }) => {
-  const sz = { sm: 'w-7 h-7 text-xs', md: 'w-9 h-9 text-sm', lg: 'w-12 h-12 text-base', xl: 'w-16 h-16 text-xl' };
+  const sz = { 
+    sm: 'w-7 h-7 text-xs', 
+    md: 'w-9 h-9 text-sm', 
+    lg: 'w-12 h-12 text-base', 
+    xl: 'w-16 h-16 text-xl',
+    '2xl': 'w-24 h-24 text-2xl'
+  };
   const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+  const getFullUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `http://localhost:5000${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const finalSrc = getFullUrl(src);
+
   return (
-    <div className={`avatar ${sz[size]} font-bold text-white flex-shrink-0 overflow-hidden flex items-center justify-center ${className}`}>
-      {src ? (
-        <img src={src} alt={name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+    <div className={`avatar ${sz[size] || sz.md} font-bold text-white flex-shrink-0 overflow-hidden flex items-center justify-center ${className}`}>
+      {finalSrc ? (
+        <img 
+          src={finalSrc} 
+          alt={name} 
+          className="w-full h-full object-cover" 
+          onError={(e) => { 
+            e.target.style.display = 'none'; 
+          }} 
+        />
       ) : null}
-      {!src && initials}
+      {!finalSrc && initials}
     </div>
   );
 };

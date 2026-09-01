@@ -123,9 +123,9 @@ export default function DashboardLayout({ children }) {
       {/* ── Sidebar ─────────────────────────────────────────── */}
       <aside className={`
         fixed top-0 left-0 bottom-0 w-64 z-50
-        bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-r border-gray-100 dark:border-slate-700
+        bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border-r border-gray-100 dark:border-slate-700
         flex flex-col transition-transform duration-300 overflow-y-auto
-        lg:translate-x-0 lg:static lg:z-auto
+        lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:z-30 lg:flex-shrink-0
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         {/* Logo */}
@@ -144,9 +144,23 @@ export default function DashboardLayout({ children }) {
           </button>
         </div>
 
+        {/* Dynamic User Profile Card in Sidebar Header */}
+        <div className="p-4 mx-3 my-3 rounded-2xl bg-gradient-to-br from-primary-500/10 via-violet-500/5 to-transparent border border-primary-500/20">
+          <div className="flex items-center gap-3">
+            <Avatar name={user?.name || 'User'} size="md" src={user?.avatar} />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-black text-gray-900 dark:text-slate-100 truncate">{user?.name}</div>
+              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                {profile?.isComplete ? '100% Verified' : '86% Profile Ready'}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Main Nav Links */}
-        <nav className="flex-1 py-4">
-          <div className="px-5 mb-2 text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
+        <nav className="flex-1 py-2 px-2 overflow-y-auto">
+          <div className="px-3 mb-2 text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
             {t('mainMenu', language)}
           </div>
           <div className="space-y-1">
@@ -155,17 +169,17 @@ export default function DashboardLayout({ children }) {
                 key={to}
                 to={to}
                 onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active bg-primary-50/70 dark:bg-primary-900/20 border-l-4 border-l-primary-500 rounded-l-none' : ''}`}
+                className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 border-l-4 border-l-primary-500 font-bold' : 'text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700/50'}`}
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
-                <span className="flex-1 text-sm font-semibold">{t(labelKey, language)}</span>
+                <span className="flex-1 text-xs font-semibold">{t(labelKey, language)}</span>
               </NavLink>
             ))}
           </div>
 
           {/* Secondary Nav Links (Services & Resources) */}
           <div className="mt-6">
-            <div className="px-5 mb-2 text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
+            <div className="px-3 mb-2 text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
               Services & Resources
             </div>
             <div className="space-y-1">
@@ -174,10 +188,10 @@ export default function DashboardLayout({ children }) {
                   key={to}
                   to={to}
                   onClick={() => setSidebarOpen(false)}
-                  className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active bg-primary-50/70 dark:bg-primary-900/20 border-l-4 border-l-primary-500 rounded-l-none' : ''}`}
+                  className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 border-l-4 border-l-primary-500 font-bold' : 'text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700/50'}`}
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="flex-1 text-sm font-semibold">{label}</span>
+                  <span className="flex-1 text-xs font-semibold">{label}</span>
                 </NavLink>
               ))}
             </div>
@@ -186,13 +200,6 @@ export default function DashboardLayout({ children }) {
 
         {/* User footer */}
         <div className="p-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/40">
-          <div className="flex items-center gap-3 mb-3 px-1">
-            <Avatar name={user?.name || 'U'} size="sm" src={user?.avatar} />
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate">{user?.name}</div>
-              <div className="text-[11px] text-gray-400 dark:text-slate-500 truncate">{user?.email}</div>
-            </div>
-          </div>
           <button
             onClick={handleLogout}
             className="btn btn-ghost w-full text-xs py-2 gap-2 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-200"
