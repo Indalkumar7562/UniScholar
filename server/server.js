@@ -155,6 +155,14 @@ const connectWithRetry = async (retries = 0) => {
       socketTimeoutMS: 45000,
     });
     console.log('✅ MongoDB connected successfully');
+    
+    try {
+      const { ensureDemoAccounts } = require('./controllers/auth.controller');
+      await ensureDemoAccounts();
+      console.log('✅ Admin & Demo accounts initialized.');
+    } catch (e) {
+      console.error('Demo account init notice:', e.message);
+    }
 
     if (!server) {
       server = app.listen(PORT, () => {

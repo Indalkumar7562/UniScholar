@@ -38,12 +38,23 @@ const backfillStudentIds = async () => {
 // Helper to seed demo accounts on demand
 const ensureDemoAccounts = async () => {
   try {
-    const adminExists = await User.findOne({ email: 'admin@demo.com' });
-    if (!adminExists) {
+    const adminDemoExists = await User.findOne({ email: 'admin@demo.com' });
+    if (!adminDemoExists) {
       await User.create({
         name: 'UniScholar System Admin',
         email: 'admin@demo.com',
         password: 'demo@123',
+        role: 'admin',
+        isEmailVerified: true
+      });
+    }
+
+    const adminGovExists = await User.findOne({ email: 'admin@uss.gov.in' });
+    if (!adminGovExists) {
+      await User.create({
+        name: 'USS Platform Administrator',
+        email: 'admin@uss.gov.in',
+        password: 'admin@123',
         role: 'admin',
         isEmailVerified: true
       });
