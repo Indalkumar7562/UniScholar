@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { eligibilityAPI } from '../services/api';
+import { eligibilityAPI, applicationAPI } from '../services/api';
 import { SectionHeader, EmptyState, SkeletonCard } from '../components/ui/index.jsx';
-import SchemeCard, { handleApplyOfficialPortal } from '../components/dashboard/SchemeCard.jsx';
+import SchemeCard, { handleOfficialWebsite } from '../components/dashboard/SchemeCard.jsx';
 import { 
   RefreshCw, Search, CheckCircle2, XCircle, 
   AlertTriangle, BookOpen, ExternalLink, X, Filter
@@ -24,6 +24,9 @@ export default function ResultsPage() {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
   
+  // Tracked Applications state
+  const [appliedSchemeIds, setAppliedSchemeIds] = useState(new Set());
+
   // Filter States
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,7 +38,7 @@ export default function ResultsPage() {
   const [selectedScheme, setSelectedScheme] = useState(null);
 
   useEffect(() => {
-    loadResults();
+    loadData();
   }, []);
 
   // Control body scrolling when modal is open
@@ -50,11 +53,23 @@ export default function ResultsPage() {
     };
   }, [selectedScheme]);
 
-  const loadResults = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const { data } = await eligibilityAPI.getResults();
-      setResults(data.data);
+      const [resRes, appRes] = await Promise.allSettled([
+        eligibilityAPI.getResults(),
+        applicationAPI.getAll()
+      ]);
+
+      if (resRes.status === 'fulfilled') {
+        setResults(resRes.value.data.data);
+      }
+
+      if (appRes.status === 'fulfilled') {
+        const apps = appRes.value.data.applications || [];
+        const ids = new Set(apps.map(a => (a.scheme?._id || a.scheme)));
+        setAppliedSchemeIds(ids);
+      }
     } catch (err) {
       showToast('Failed to load eligibility records', 'error');
     } finally {
@@ -67,10 +82,29 @@ export default function ResultsPage() {
     try {
       const { data } = await eligibilityAPI.check();
       showToast(data.message || 'Eligibility check refreshed!', 'success');
-      await loadResults();
+      await loadData();
     } catch (err) {
       showToast(err.response?.data?.message || 'Please complete your profile before checking eligibility', 'error');
       setLoading(false);
+    }
+  };
+
+  // Internal UniScholar Application Handler
+  const handleInternalApply = async (scheme, e) => {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (!scheme) return;
+
+    if (appliedSchemeIds.has(scheme._id)) {
+      showToast('Application already started.', 'info');
+      return;
+    }
+
+    try {
+      await applicationAPI.upsert({ schemeId: scheme._id, status: 'Submitted' });
+      setAppliedSchemeIds(prev => new Set([...prev, scheme._id]));
+      showToast('✓ Application started successfully.', 'success');
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to start application', 'error');
     }
   };
 
@@ -162,6 +196,20 @@ export default function ResultsPage() {
       return true;
     })
     .sort((a, b) => b.matchScore - a.matchScore);
+
+  const isModalSchemeApplied = selectedScheme ? appliedSchemeIds.has(selectedScheme._id) : false;
+  const isModalSchemeExpired = selectedScheme ? isExpired(selectedScheme) : false;
+
+  const rawUrlModal = (selectedScheme?.applicationLink || selectedScheme?.officialUrl || selectedScheme?.officialLink || '').trim();
+  let hasValidOfficialUrlModal = false;
+  if (rawUrlModal) {
+    try {
+      const p = new URL(rawUrlModal);
+      hasValidOfficialUrlModal = p.protocol === 'http:' || p.protocol === 'https:';
+    } catch {
+      hasValidOfficialUrlModal = false;
+    }
+  }
 
   return (
     <div className="space-y-6 animate-fade-in max-w-7xl mx-auto p-4 md:p-6 text-slate-100">
@@ -317,6 +365,8 @@ export default function ResultsPage() {
               scheme={s}
               showEligibility
               onViewDetails={(scheme) => setSelectedScheme(scheme)}
+              onApplyInternal={handleInternalApply}
+              isApplied={appliedSchemeIds.has(s._id)}
             />
           ))}
         </div>
@@ -444,23 +494,45 @@ export default function ResultsPage() {
 
             </div>
 
-            {/* Modal Sticky Footer Action Bar */}
-            <div className="p-4 border-t border-slate-800 bg-slate-950/90 flex gap-3 items-center">
+            {/* Modal Sticky Footer Action Bar — 3 DISTINCT ACTIONS */}
+            <div className="p-4 border-t border-slate-800 bg-slate-950/90 flex gap-2.5 items-center flex-wrap sm:flex-nowrap">
+              {/* 1. Close */}
               <button 
                 type="button"
                 onClick={() => setSelectedScheme(null)}
-                className="btn btn-ghost px-4 py-2.5 text-xs font-bold text-slate-400 hover:text-white"
+                className="btn btn-ghost px-3 py-2 text-xs font-bold text-slate-400 hover:text-white"
               >
                 Close
               </button>
               
+              {/* 2. Internal Apply */}
               <button
                 type="button"
-                onClick={(e) => handleApplyOfficialPortal(selectedScheme, e)}
-                disabled={isExpired(selectedScheme)}
-                className={`btn btn-primary flex-1 py-2.5 text-xs font-bold flex items-center justify-center gap-2 shadow-lg rounded-xl ${isExpired(selectedScheme) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={(e) => handleInternalApply(selectedScheme, e)}
+                disabled={isModalSchemeExpired || isModalSchemeApplied}
+                className={`btn flex-1 py-2 text-xs font-bold flex items-center justify-center gap-1.5 rounded-xl ${
+                  isModalSchemeApplied
+                    ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 cursor-default'
+                    : isModalSchemeExpired
+                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                    : 'btn-primary shadow-lg'
+                }`}
               >
-                {isExpired(selectedScheme) ? 'Application Closed' : 'Apply on Official Portal'} <ExternalLink className="w-4 h-4" />
+                {isModalSchemeApplied ? 'Applied ✓' : isModalSchemeExpired ? 'Application Closed' : 'Apply'}
+              </button>
+
+              {/* 3. External Official Website */}
+              <button
+                type="button"
+                title={`Open official website for ${selectedScheme.name}`}
+                aria-label={`Open official website for ${selectedScheme.name}`}
+                onClick={(e) => handleOfficialWebsite(selectedScheme, e)}
+                disabled={!hasValidOfficialUrlModal}
+                className={`btn border border-slate-700 bg-slate-800 hover:bg-slate-750 text-slate-200 flex-1 py-2 text-xs font-bold flex items-center justify-center gap-1.5 rounded-xl ${
+                  !hasValidOfficialUrlModal ? 'opacity-40 cursor-not-allowed' : ''
+                }`}
+              >
+                Official Website ↗
               </button>
             </div>
 

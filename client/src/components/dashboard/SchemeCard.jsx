@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bookmark, ExternalLink, CheckCircle, XCircle, Clock, Calendar } from 'lucide-react';
+import { Bookmark, ExternalLink, Calendar } from 'lucide-react';
 import { Badge } from '../ui/index.jsx';
 import { userAPI } from '../../services/api';
 import { getDeadlineStatus, getDaysRemaining, formatDate, isExpired } from '../../utils/deadline.utils';
@@ -14,25 +14,33 @@ const CATEGORY_COLORS = {
   All:      'gray',
 };
 
-// Reusable official portal application launcher
-export const handleApplyOfficialPortal = (scheme, e) => {
+// Reusable helper to validate and open official website in new tab
+export const handleOfficialWebsite = (scheme, e) => {
   if (e && typeof e.stopPropagation === 'function') {
     e.stopPropagation();
   }
 
   if (!scheme) return;
 
-  const url = (scheme.officialLink || scheme.officialUrl || scheme.applicationLink || '').trim();
+  const url = (scheme.applicationLink || scheme.officialUrl || scheme.officialLink || '').trim();
 
-  if (!url || url === '#' || url.startsWith('javascript:') || (!url.startsWith('http://') && !url.startsWith('https://'))) {
-    showToast('Official application link is currently unavailable for this scheme.', 'error');
+  if (!url) {
+    showToast('Official application website is currently unavailable.', 'error');
     return;
   }
 
-  window.open(url, '_blank', 'noopener,noreferrer');
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error('Invalid URL');
+    }
+    window.open(parsed.href, '_blank', 'noopener,noreferrer');
+  } catch (err) {
+    showToast('Official application website is unavailable.', 'error');
+  }
 };
 
-export default function SchemeCard({ scheme, showEligibility = false, onViewDetails }) {
+export default function SchemeCard({ scheme, showEligibility = false, onViewDetails, onApplyInternal, isApplied = false }) {
   const [bookmarked, setBookmarked] = useState(false);
   const [bookmarking, setBookmarking] = useState(false);
 
@@ -40,6 +48,17 @@ export default function SchemeCard({ scheme, showEligibility = false, onViewDeta
   const daysRemaining = getDaysRemaining(scheme);
   const formattedLastDate = formatDate(scheme);
   const expired = isExpired(scheme);
+
+  const rawUrl = (scheme?.applicationLink || scheme?.officialUrl || scheme?.officialLink || '').trim();
+  let hasValidOfficialUrl = false;
+  if (rawUrl) {
+    try {
+      const p = new URL(rawUrl);
+      hasValidOfficialUrl = p.protocol === 'http:' || p.protocol === 'https:';
+    } catch {
+      hasValidOfficialUrl = false;
+    }
+  }
 
   const handleBookmark = async (e) => {
     e.stopPropagation();
@@ -128,26 +147,53 @@ export default function SchemeCard({ scheme, showEligibility = false, onViewDeta
         )}
       </div>
 
-      {/* Footer Actions */}
-      <div className="flex items-center justify-between pt-2.5 border-t border-gray-100 dark:border-slate-700/80 mt-auto gap-2">
+      {/* Footer Actions — 3 DISTINCT BUTTONS */}
+      <div className="flex items-center justify-between pt-2.5 border-t border-gray-100 dark:border-slate-700/80 mt-auto gap-1.5 flex-wrap">
         <div className="min-w-0">
           <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 block truncate">{scheme.amount}</span>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+
+        <div className="flex items-center gap-1 shrink-0">
+          {/* 1. View Details */}
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onViewDetails?.(scheme); }}
-            className="btn btn-ghost px-2.5 py-1 text-[11px] font-bold text-gray-600 dark:text-slate-300 hover:text-primary-500"
+            className="btn btn-ghost px-2 py-1 text-[11px] font-bold text-gray-500 dark:text-slate-400 hover:text-white"
           >
-            View Details
+            Details
           </button>
+
+          {/* 2. Apply (Internal UniScholar Action) */}
           <button
             type="button"
-            onClick={(e) => handleApplyOfficialPortal(scheme, e)}
-            disabled={expired}
-            className={`btn btn-primary px-3 py-1 text-[11px] font-bold flex items-center gap-1 shadow-sm ${expired ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onApplyInternal?.(scheme, e);
+            }}
+            disabled={expired || isApplied}
+            className={`btn px-2.5 py-1 text-[11px] font-bold rounded-lg ${
+              isApplied
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
+                : expired
+                ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                : 'btn-primary shadow-sm'
+            }`}
           >
-            {expired ? 'Closed' : 'Apply Now'} <ExternalLink className="w-3 h-3" />
+            {isApplied ? 'Applied ✓' : expired ? 'Closed' : 'Apply'}
+          </button>
+
+          {/* 3. Official Website (External Link) */}
+          <button
+            type="button"
+            title={`Open official website for ${scheme.name}`}
+            aria-label={`Open official website for ${scheme.name}`}
+            onClick={(e) => handleOfficialWebsite(scheme, e)}
+            disabled={!hasValidOfficialUrl}
+            className={`btn border border-slate-700 bg-slate-800/80 hover:bg-slate-750 text-slate-200 px-2 py-1 text-[11px] font-bold flex items-center gap-1 rounded-lg ${
+              !hasValidOfficialUrl ? 'opacity-40 cursor-not-allowed' : ''
+            }`}
+          >
+            Official ↗
           </button>
         </div>
       </div>
