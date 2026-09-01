@@ -17,7 +17,7 @@ const schemeSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ['General', 'OBC', 'SC', 'ST', 'Minority', 'All'],
+      enum: ['General', 'OBC', 'SC', 'ST', 'Minority', 'EWS', 'All'],
     },
     ministry: { type: String, default: 'Ministry of Education' },
     amount: { type: String, required: true },

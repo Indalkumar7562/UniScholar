@@ -158,10 +158,12 @@ const connectWithRetry = async (retries = 0) => {
     
     try {
       const { ensureDemoAccounts } = require('./controllers/auth.controller');
+      const { ensureSeedSchemes } = require('./seeders/scheme.seeder');
       await ensureDemoAccounts();
-      console.log('✅ Admin & Demo accounts initialized.');
+      await ensureSeedSchemes();
+      console.log('✅ Admin, Demo accounts & 36+ Master Scholarship catalog initialized.');
     } catch (e) {
-      console.error('Demo account init notice:', e.message);
+      console.error('Account & Scheme init notice:', e.message);
     }
 
     if (!server) {

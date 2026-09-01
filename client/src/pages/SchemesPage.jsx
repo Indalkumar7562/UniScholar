@@ -21,7 +21,7 @@ export default function SchemesPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { page, limit: 9 };
+      const params = { page, limit: 50 };
       if (search) params.search = search;
       if (category !== 'All') params.category = category;
       if (sort) params.sort = sort;

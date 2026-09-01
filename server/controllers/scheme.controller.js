@@ -1,13 +1,15 @@
 const Scheme = require('../models/Scheme.model');
 const Profile = require('../models/Profile.model');
 const { runEligibilityCheck } = require('../utils/eligibility.utils');
+const { ensureSeedSchemes } = require('../seeders/scheme.seeder');
 
 // @desc    Get all schemes with filtering & search
 // @route   GET /api/schemes
 // @access  Public
 const getSchemes = async (req, res) => {
   try {
-    const { search, category, state, sort, status, page = 1, limit = 12 } = req.query;
+    await ensureSeedSchemes();
+    const { search, category, state, sort, status, page = 1, limit = 50 } = req.query;
     const query = { isActive: true };
 
     if (search) {
