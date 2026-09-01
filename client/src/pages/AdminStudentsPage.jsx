@@ -234,6 +234,64 @@ export default function AdminStudentsPage() {
         </div>
       )}
 
+      {/* VIEW STUDENT DETAILS MODAL (Eye Symbol 👁️) */}
+      {viewStudent && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="font-extrabold text-white text-base flex items-center gap-2">
+                  <Eye className="w-5 h-5 text-blue-400" /> Student Profile Details
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">Read-only profile inspection for {viewStudent.name}</p>
+              </div>
+              <button onClick={() => setViewStudent(null)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">Student Identification</span>
+                  <StudentIdBadge studentId={viewStudent.studentId || 'USS-STU-2026-000001'} size="sm" />
+                </div>
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold block uppercase">Full Name</span>
+                    <strong className="text-white">{viewStudent.name}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold block uppercase">Email Address</span>
+                    <span className="font-mono text-slate-300">{viewStudent.email}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold block uppercase">Education Level</span>
+                    <strong className="text-blue-400">{viewStudent.profile?.educationLevel || '12th Pass'} ({viewStudent.profile?.stream || 'Science'})</strong>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold block uppercase">Domicile State</span>
+                    <strong className="text-white">{viewStudent.profile?.state || 'N/A'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold block uppercase">Social Category</span>
+                    <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold text-[10px] inline-block mt-0.5">
+                      {viewStudent.profile?.category || 'General'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold block uppercase">Annual Family Income</span>
+                    <strong className="text-emerald-400 font-mono">₹{viewStudent.profile?.annualFamilyIncome ? viewStudent.profile.annualFamilyIncome.toLocaleString() : '0'}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-800">
+              <button onClick={() => setViewStudent(null)} className="btn btn-ghost px-5 py-2 text-xs font-bold text-slate-300">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* EDIT STUDENT MODAL */}
       {editStudent && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
