@@ -32,7 +32,8 @@ export const SkeletonCard = () => (
 );
 
 // ─── Avatar ────────────────────────────────────────────────────────────────────
-export const Avatar = ({ name = '?', size = 'md', src = '', className = '' }) => {
+export const Avatar = ({ name = 'Student', size = 'md', src = '', className = '' }) => {
+  const safeName = (name && typeof name === 'string' && name.trim()) ? name.trim() : 'Student';
   const sz = { 
     sm: 'w-7 h-7 text-xs', 
     md: 'w-9 h-9 text-sm', 
@@ -40,10 +41,10 @@ export const Avatar = ({ name = '?', size = 'md', src = '', className = '' }) =>
     xl: 'w-16 h-16 text-xl',
     '2xl': 'w-24 h-24 text-2xl'
   };
-  const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const initials = safeName.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'S';
 
   const getFullUrl = (url) => {
-    if (!url) return '';
+    if (!url || typeof url !== 'string') return '';
     if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) return url;
     return `http://localhost:5000${url.startsWith('/') ? '' : '/'}${url}`;
   };
@@ -55,7 +56,7 @@ export const Avatar = ({ name = '?', size = 'md', src = '', className = '' }) =>
       {finalSrc ? (
         <img 
           src={finalSrc} 
-          alt={name} 
+          alt={safeName} 
           className="w-full h-full object-cover" 
           onError={(e) => { 
             e.target.style.display = 'none'; 
