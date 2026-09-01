@@ -3,6 +3,7 @@ const { protect } = require('../middleware/auth.middleware');
 const {
   getUserApplications,
   createOrUpdateApplication,
+  resolveRejection,
   updateApplicationStatus,
   deleteApplication,
 } = require('../controllers/application.controller');
@@ -13,6 +14,7 @@ router.use(protect); // All application routes require authentication
 
 router.get('/', getUserApplications);
 router.post('/', createOrUpdateApplication);
+router.put('/:id/resolve-rejection', resolveRejection);
 router.put('/:id', updateApplicationStatus);
 router.delete('/:id', deleteApplication);
 

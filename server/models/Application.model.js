@@ -21,6 +21,8 @@ const applicationSchema = new mongoose.Schema(
         'Application Started',
         'Submitted',
         'Under Review',
+        'Correction Submitted',
+        'Re-verification Pending',
         'Approved',
         'Rejected',
       ],
@@ -44,6 +46,63 @@ const applicationSchema = new mongoose.Schema(
       min: 0,
       max: 100,
     },
+    
+    // Stage-Wise Rejection & Recovery Extensions
+    rejectedAtStage: {
+      type: String,
+      enum: [
+        'submission',
+        'document_verification',
+        'eligibility_verification',
+        'institute_verification',
+        'provider_review',
+        'final_approval',
+        'disbursement',
+        null
+      ],
+      default: null,
+    },
+    rejectedAt: {
+      type: Date,
+      default: null,
+    },
+    rejectionReason: {
+      type: String,
+      default: '',
+    },
+    rejectionCategory: {
+      type: String,
+      enum: ['document_issue', 'eligibility_issue', 'institute_issue', 'provider_issue', 'criteria_issue', 'none'],
+      default: 'none',
+    },
+    affectedDocument: {
+      type: String,
+      default: '',
+    },
+    isCorrectable: {
+      type: Boolean,
+      default: true,
+    },
+    suggestedAction: {
+      type: String,
+      default: '',
+    },
+    suggestedActionType: {
+      type: String,
+      enum: ['replace_document', 'review_profile', 'update_institute', 'find_scholarships', 'view_reason', 'none'],
+      default: 'none',
+    },
+    rejectionHistory: [
+      {
+        stage: { type: String },
+        date: { type: Date, default: Date.now },
+        reason: { type: String },
+        affectedItem: { type: String },
+        actionTaken: { type: String },
+        dateResolved: { type: Date },
+        isCorrectable: { type: Boolean, default: true }
+      }
+    ]
   },
   { timestamps: true }
 );

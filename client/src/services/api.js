@@ -65,10 +65,11 @@ export const userAPI = {
 
 // ─── Applications ────────────────────────────────────────────────────────────
 export const applicationAPI = {
-  getAll:       () => api.get('/applications'),
-  upsert:       (data) => api.post('/applications', data),
-  updateStatus: (id, data) => api.put(`/applications/${id}`, data),
-  delete:       (id) => api.delete(`/applications/${id}`),
+  getAll:           () => api.get('/applications'),
+  upsert:           (data) => api.post('/applications', data),
+  resolveRejection: (id, data) => api.put(`/applications/${id}/resolve-rejection`, data),
+  updateStatus:     (id, data) => api.put(`/applications/${id}`, data),
+  delete:           (id) => api.delete(`/applications/${id}`),
 };
 
 

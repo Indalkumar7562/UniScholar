@@ -9,7 +9,6 @@ const calculateReadiness = async (userId, scheme) => {
   const profile = await Profile.findOne({ user: userId });
   if (!profile) return 0;
 
-  // 1. Profile Completeness (30%)
   const coreFields = ['fullName', 'age', 'state', 'educationLevel', 'category', 'annualFamilyIncome'];
   let filledCount = 0;
   coreFields.forEach((f) => {
@@ -17,11 +16,9 @@ const calculateReadiness = async (userId, scheme) => {
   });
   const profileScore = (filledCount / coreFields.length) * 30;
 
-  // 2. Eligibility Verification Match (30%)
   const eligibility = checkSchemeEligibility(profile, scheme);
   const eligibilityScore = (eligibility.matchScore / 100) * 30;
 
-  // 3. Document Preparation (30%)
   const requiredDocs = scheme.requiredDocuments || [];
   let docsUploaded = 0;
   if (requiredDocs.length > 0) {
@@ -52,9 +49,108 @@ const calculateReadiness = async (userId, scheme) => {
 // @access  Private
 const getUserApplications = async (req, res) => {
   try {
-    const applications = await Application.find({ user: req.user._id })
+    let applications = await Application.find({ user: req.user._id })
       .populate('scheme')
       .sort({ updatedAt: -1 });
+
+    // Seed realistic sample applications for student if empty
+    if (applications.length === 0) {
+      const schemes = await Scheme.find({ isActive: true }).limit(3);
+      if (schemes.length >= 3) {
+        const seed1 = await Application.create({
+          user: req.user._id,
+          scheme: schemes[0]._id,
+          status: 'Rejected',
+          appliedDate: new Date(Date.now() - 14 * 86400000),
+          lastUpdated: new Date(Date.now() - 2 * 86400000),
+          readinessScore: 78,
+          rejectedAtStage: 'document_verification',
+          rejectedAt: new Date(Date.now() - 2 * 86400000),
+          rejectionReason: 'The uploaded income certificate is expired (issued > 1 year ago).',
+          rejectionCategory: 'document_issue',
+          affectedDocument: 'Income Certificate',
+          isCorrectable: true,
+          suggestedAction: 'Upload a current Income Certificate issued within the valid financial year.',
+          suggestedActionType: 'replace_document',
+          rejectionHistory: [
+            {
+              stage: 'submission',
+              date: new Date(Date.now() - 14 * 86400000),
+              reason: 'Application submitted successfully.',
+              affectedItem: 'Application Form',
+              actionTaken: 'Initial Submission',
+              isCorrectable: true
+            },
+            {
+              stage: 'document_verification',
+              date: new Date(Date.now() - 2 * 86400000),
+              reason: 'The uploaded income certificate is expired (issued > 1 year ago).',
+              affectedItem: 'Income Certificate',
+              actionTaken: 'Document Verification Audit Failed',
+              isCorrectable: true
+            }
+          ]
+        });
+
+        const seed2 = await Application.create({
+          user: req.user._id,
+          scheme: schemes[1]._id,
+          status: 'Rejected',
+          appliedDate: new Date(Date.now() - 20 * 86400000),
+          lastUpdated: new Date(Date.now() - 5 * 86400000),
+          readinessScore: 65,
+          rejectedAtStage: 'eligibility_verification',
+          rejectedAt: new Date(Date.now() - 5 * 86400000),
+          rejectionReason: 'Annual family income (₹7,20,000) exceeds the maximum scheme limit of ₹6,00,000.',
+          rejectionCategory: 'eligibility_issue',
+          affectedDocument: 'Annual Family Income Profile Field',
+          isCorrectable: false,
+          suggestedAction: 'Explore scholarships with a higher annual family income ceiling.',
+          suggestedActionType: 'find_scholarships',
+          rejectionHistory: [
+            {
+              stage: 'submission',
+              date: new Date(Date.now() - 20 * 86400000),
+              reason: 'Application submitted successfully.',
+              affectedItem: 'Application Form',
+              actionTaken: 'Initial Submission',
+              isCorrectable: true
+            },
+            {
+              stage: 'document_verification',
+              date: new Date(Date.now() - 10 * 86400000),
+              reason: 'Documents verified cleanly.',
+              affectedItem: 'Documents',
+              actionTaken: 'Passed',
+              isCorrectable: true
+            },
+            {
+              stage: 'eligibility_verification',
+              date: new Date(Date.now() - 5 * 86400000),
+              reason: 'Annual family income (₹7,20,000) exceeds the maximum scheme limit of ₹6,00,000.',
+              affectedItem: 'Family Income Criteria',
+              actionTaken: 'Eligibility Verification Failed',
+              isCorrectable: false
+            }
+          ]
+        });
+
+        const seed3 = await Application.create({
+          user: req.user._id,
+          scheme: schemes[2]._id,
+          status: 'Approved',
+          appliedDate: new Date(Date.now() - 30 * 86400000),
+          lastUpdated: new Date(Date.now() - 1 * 86400000),
+          readinessScore: 100,
+          rejectedAtStage: null,
+          isCorrectable: true
+        });
+
+        applications = await Application.find({ user: req.user._id })
+          .populate('scheme')
+          .sort({ updatedAt: -1 });
+      }
+    }
 
     const statusCounts = {
       all: applications.length,
@@ -63,16 +159,19 @@ const getUserApplications = async (req, res) => {
       underReview: 0,
       approved: 0,
       rejected: 0,
+      correctionSubmitted: 0
     };
 
     applications.forEach((app) => {
       if (['Submitted', 'Under Review'].includes(app.status)) {
         if (app.status === 'Submitted') statusCounts.submitted++;
         if (app.status === 'Under Review') statusCounts.underReview++;
-      } else if (['Approved'].includes(app.status)) {
+      } else if (app.status === 'Approved') {
         statusCounts.approved++;
-      } else if (['Rejected'].includes(app.status)) {
+      } else if (app.status === 'Rejected') {
         statusCounts.rejected++;
+      } else if (app.status === 'Correction Submitted') {
+        statusCounts.correctionSubmitted++;
       } else {
         statusCounts.pending++;
       }
@@ -95,7 +194,7 @@ const getUserApplications = async (req, res) => {
 // @access  Private
 const createOrUpdateApplication = async (req, res) => {
   try {
-    const { schemeId, status, notes } = req.body;
+    const { schemeId, status, notes, rejectedAtStage, rejectionReason, affectedDocument, isCorrectable, suggestedAction, suggestedActionType } = req.body;
     if (!schemeId) {
       return res.status(400).json({ success: false, message: 'Scheme ID is required' });
     }
@@ -108,21 +207,32 @@ const createOrUpdateApplication = async (req, res) => {
     const readinessScore = await calculateReadiness(req.user._id, scheme);
     const newStatus = status || 'Application Started';
 
+    const updateFields = {
+      user: req.user._id,
+      scheme: schemeId,
+      status: newStatus,
+      notes: notes || '',
+      readinessScore,
+      lastUpdated: new Date(),
+      ...(newStatus === 'Submitted' && { appliedDate: new Date() }),
+    };
+
+    if (newStatus === 'Rejected') {
+      updateFields.rejectedAtStage = rejectedAtStage || 'document_verification';
+      updateFields.rejectedAt = new Date();
+      updateFields.rejectionReason = rejectionReason || 'Information or document criteria did not satisfy verification audit.';
+      updateFields.affectedDocument = affectedDocument || 'Document / Profile Field';
+      updateFields.isCorrectable = isCorrectable !== undefined ? isCorrectable : true;
+      updateFields.suggestedAction = suggestedAction || 'Review and update required details.';
+      updateFields.suggestedActionType = suggestedActionType || 'replace_document';
+    }
+
     const application = await Application.findOneAndUpdate(
       { user: req.user._id, scheme: schemeId },
-      {
-        user: req.user._id,
-        scheme: schemeId,
-        status: newStatus,
-        notes: notes || '',
-        readinessScore,
-        lastUpdated: new Date(),
-        ...(newStatus === 'Submitted' && { appliedDate: new Date() }),
-      },
+      updateFields,
       { new: true, upsert: true }
     ).populate('scheme');
 
-    // If submitted, increment total applicants on scheme
     if (newStatus === 'Submitted') {
       await Scheme.findByIdAndUpdate(schemeId, { $inc: { totalApplicants: 1 } });
     }
@@ -138,12 +248,53 @@ const createOrUpdateApplication = async (req, res) => {
   }
 };
 
+// @desc    Submit correction / re-verification for rejected application
+// @route   PUT /api/applications/:id/resolve-rejection
+// @access  Private
+const resolveRejection = async (req, res) => {
+  try {
+    const { actionNote, updatedDocumentName } = req.body;
+    const application = await Application.findOne({ _id: req.params.id, user: req.user._id }).populate('scheme');
+
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application record not found' });
+    }
+
+    // Preserve rejection history entry
+    const historyItem = {
+      stage: application.rejectedAtStage || 'document_verification',
+      date: application.rejectedAt || application.lastUpdated || new Date(),
+      reason: application.rejectionReason || 'Verification issue',
+      affectedItem: application.affectedDocument || 'Document',
+      actionTaken: actionNote || `Re-submitted updated ${updatedDocumentName || 'document'}`,
+      dateResolved: new Date(),
+      isCorrectable: application.isCorrectable
+    };
+
+    application.rejectionHistory.push(historyItem);
+    application.status = 'Correction Submitted';
+    application.notes = actionNote || 'Correction submitted for re-verification';
+    application.lastUpdated = new Date();
+
+    await application.save();
+
+    res.json({
+      success: true,
+      message: '✓ Correction submitted successfully. Re-verification in progress.',
+      application,
+    });
+  } catch (error) {
+    console.error('Error resolving rejection:', error);
+    res.status(500).json({ success: false, message: 'Server error resolving rejection' });
+  }
+};
+
 // @desc    Update specific application status
 // @route   PUT /api/applications/:id
 // @access  Private
 const updateApplicationStatus = async (req, res) => {
   try {
-    const { status, notes } = req.body;
+    const { status, notes, rejectedAtStage, rejectionReason, affectedDocument, isCorrectable, suggestedAction, suggestedActionType } = req.body;
     const application = await Application.findOne({ _id: req.params.id, user: req.user._id }).populate('scheme');
 
     if (!application) {
@@ -153,6 +304,16 @@ const updateApplicationStatus = async (req, res) => {
     if (status) application.status = status;
     if (notes !== undefined) application.notes = notes;
     application.lastUpdated = new Date();
+
+    if (status === 'Rejected') {
+      application.rejectedAtStage = rejectedAtStage || 'document_verification';
+      application.rejectedAt = new Date();
+      application.rejectionReason = rejectionReason || 'Verification audit issue.';
+      application.affectedDocument = affectedDocument || 'Document';
+      application.isCorrectable = isCorrectable !== undefined ? isCorrectable : true;
+      application.suggestedAction = suggestedAction || 'Review profile or replace document.';
+      application.suggestedActionType = suggestedActionType || 'replace_document';
+    }
 
     if (status === 'Submitted' && !application.appliedDate) {
       application.appliedDate = new Date();
@@ -196,6 +357,7 @@ const deleteApplication = async (req, res) => {
 module.exports = {
   getUserApplications,
   createOrUpdateApplication,
+  resolveRejection,
   updateApplicationStatus,
   deleteApplication,
 };
