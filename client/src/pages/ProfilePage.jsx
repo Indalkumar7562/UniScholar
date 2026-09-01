@@ -10,7 +10,7 @@ import AcademicDetailsSection from '../components/profile/AcademicDetailsSection
 import { 
   Save, User, BookOpen, IndianRupee, FileText, Upload, 
   Sparkles, CheckCircle2, ChevronRight, ChevronLeft, ShieldAlert, Check,
-  Edit3, Eye, AlertTriangle, ArrowRight, ShieldCheck, MapPin, Briefcase, Award
+  Edit3, Eye, AlertTriangle, ArrowRight, ShieldCheck, MapPin, Briefcase, Award, GraduationCap
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
