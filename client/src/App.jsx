@@ -86,6 +86,16 @@ function AppRoutes() {
           <DashboardLayout><ApplicationTrackerPage /></DashboardLayout>
         </ProtectedRoute>
       }/>
+      <Route path="/tracker" element={
+        <ProtectedRoute>
+          <DashboardLayout><ApplicationTrackerPage /></DashboardLayout>
+        </ProtectedRoute>
+      }/>
+      <Route path="/application-tracker" element={
+        <ProtectedRoute>
+          <DashboardLayout><ApplicationTrackerPage /></DashboardLayout>
+        </ProtectedRoute>
+      }/>
 
       <Route path="/eligibility" element={
         <ProtectedRoute>
