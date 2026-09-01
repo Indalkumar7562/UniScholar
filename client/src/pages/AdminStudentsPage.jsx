@@ -1,87 +1,118 @@
-import { useState } from 'react';
-import { Search, Eye, CheckCircle2, Flag, User, FileText, AlertTriangle, XCircle, ShieldCheck } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { adminAPI } from '../services/api';
+import { Search, Eye, Edit3, Trash2, ShieldCheck, AlertTriangle, X, Check, Filter } from 'lucide-react';
 import { Spinner } from '../components/ui/index.jsx';
 import toast from 'react-hot-toast';
 
 const DEMO_STUDENTS = [
   {
     _id: 's1',
-    name: 'Priya Sharma',
-    email: 'student@demo.com',
-    educationLevel: '12th Pass',
-    category: 'General',
-    profileScore: 92,
+    name: 'Rahul Kumar',
+    email: 'rahul.kumar@gmail.com',
+    status: 'Active',
+    createdAt: '2026-08-15',
     applicationsCount: 3,
-    verificationStatus: 'Verified',
-    state: 'Gujarat',
-    annualFamilyIncome: 150000,
-    cgpaOrPercentage: 88,
-    stream: 'Science'
+    profile: { age: 19, gender: 'Male', state: 'Bihar', educationLevel: '12th Pass', stream: 'Science', annualFamilyIncome: 180000, category: 'OBC', isComplete: true }
   },
   {
     _id: 's2',
-    name: 'Rahul Verma',
-    email: 'rahul.v@example.com',
-    educationLevel: 'Graduation',
-    category: 'OBC',
-    profileScore: 78,
+    name: 'Priya Sharma',
+    email: 'priya.sharma@gmail.com',
+    status: 'Active',
+    createdAt: '2026-08-20',
     applicationsCount: 2,
-    verificationStatus: 'Pending',
-    state: 'Maharashtra',
-    annualFamilyIncome: 220000,
-    cgpaOrPercentage: 79,
-    stream: 'Engineering'
+    profile: { age: 20, gender: 'Female', state: 'Maharashtra', educationLevel: 'Graduation', stream: 'Engineering', annualFamilyIncome: 240000, category: 'General', isComplete: true }
   },
   {
     _id: 's3',
-    name: 'Ananya Das',
-    email: 'ananya.d@example.com',
-    educationLevel: 'Post Graduation',
-    category: 'SC',
-    profileScore: 95,
-    applicationsCount: 4,
-    verificationStatus: 'Verified',
-    state: 'West Bengal',
-    annualFamilyIncome: 180000,
-    cgpaOrPercentage: 91,
-    stream: 'Arts'
-  },
-  {
-    _id: 's4',
-    name: 'Karan Patel',
-    email: 'karan.p@example.com',
-    educationLevel: 'Diploma',
-    category: 'ST',
-    profileScore: 64,
+    name: 'Amit Patel',
+    email: 'amit.patel@gmail.com',
+    status: 'Suspended',
+    createdAt: '2026-08-22',
     applicationsCount: 1,
-    verificationStatus: 'Action Required',
-    state: 'Rajasthan',
-    annualFamilyIncome: 350000,
-    cgpaOrPercentage: 72,
-    stream: 'Technical'
+    profile: { age: 21, gender: 'Male', state: 'Gujarat', educationLevel: 'Graduation', stream: 'Commerce', annualFamilyIncome: 350000, category: 'SC', isComplete: false }
   }
 ];
 
 export default function AdminStudentsPage() {
-  const [students, setStudents] = useState(DEMO_STUDENTS);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [filterCategory, setFilterCategory] = useState('All');
 
-  const filteredStudents = students.filter(s => 
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.email.toLowerCase().includes(search.toLowerCase()) ||
-    s.state.toLowerCase().includes(search.toLowerCase())
-  );
+  // Modals state
+  const [viewStudent, setViewStudent] = useState(null);
+  const [editStudent, setEditStudent] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [activeEditTab, setActiveEditTab] = useState('personal');
 
-  const handleVerifyStudent = (id) => {
-    setStudents(prev => prev.map(s => s._id === id ? { ...s, verificationStatus: 'Verified' } : s));
-    toast.success('Student profile marked as Verified');
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const fetchStudents = async () => {
+    setLoading(true);
+    try {
+      const res = await adminAPI.getStudents();
+      if (res.data?.students && res.data.students.length > 0) {
+        setStudents(res.data.students);
+      } else {
+        setStudents(DEMO_STUDENTS);
+      }
+    } catch (err) {
+      setStudents(DEMO_STUDENTS);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleFlagStudent = (id) => {
-    setStudents(prev => prev.map(s => s._id === id ? { ...s, verificationStatus: 'Flagged' } : s));
-    toast.error('Student profile flagged for verification audit');
+  const handleSaveStudent = async (e) => {
+    e.preventDefault();
+    if (!editStudent) return;
+
+    try {
+      await adminAPI.updateStudent(editStudent._id, {
+        name: editStudent.name,
+        email: editStudent.email,
+        status: editStudent.status,
+        profileData: editStudent.profile
+      });
+      toast.success('✓ Student record updated successfully!');
+      fetchStudents();
+      setEditStudent(null);
+    } catch (err) {
+      toast.error('Failed to update student');
+    }
   };
+
+  const handleDeleteStudent = async () => {
+    if (!deleteConfirm) return;
+    try {
+      await adminAPI.deleteStudent(deleteConfirm._id);
+      toast.success('Student account deleted');
+      setDeleteConfirm(null);
+      fetchStudents();
+    } catch (err) {
+      toast.error('Failed to delete student');
+    }
+  };
+
+  const handleToggleStatus = async (student) => {
+    const nextStatus = student.status === 'Active' ? 'Suspended' : 'Active';
+    try {
+      await adminAPI.updateStudent(student._id, { status: nextStatus });
+      toast.success(`Student status changed to ${nextStatus}`);
+      fetchStudents();
+    } catch (err) {
+      toast.error('Status update failed');
+    }
+  };
+
+  const filteredStudents = students.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = filterCategory === 'All' || s.profile?.category === filterCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="space-y-6 text-xs animate-fade-in">
@@ -89,123 +120,272 @@ export default function AdminStudentsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Student Management</h1>
-          <p className="text-xs text-slate-400 mt-0.5">View profiles, academic & financial criteria, uploaded credentials, and verification status.</p>
+          <h1 className="text-2xl font-black text-white tracking-tight">Student Management Directory</h1>
+          <p className="text-xs text-slate-400 mt-0.5">Manage, verify, edit, and audit student accounts and profile scores.</p>
         </div>
       </div>
 
-      {/* Controls Bar */}
-      <div className="flex items-center justify-between gap-3 bg-slate-900 p-3 rounded-2xl border border-slate-800 flex-wrap">
-        <div className="relative flex-1 min-w-[240px]">
+      {/* Controls: Search & Category Filter */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+        <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
             type="text"
-            placeholder="Search by student name, email, or state..."
+            placeholder="Search by student name or email..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
           />
         </div>
-        <span className="text-slate-400 font-mono text-[11px]">Total Students: <strong className="text-white">{filteredStudents.length}</strong></span>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Filter className="w-4 h-4 text-slate-400" />
+          <select
+            value={filterCategory}
+            onChange={e => setFilterCategory(e.target.value)}
+            className="bg-slate-950 border border-slate-800 text-slate-300 rounded-xl text-xs px-3 py-2 focus:outline-none"
+          >
+            <option value="All">All Categories</option>
+            <option value="General">General</option>
+            <option value="OBC">OBC</option>
+            <option value="SC">SC</option>
+            <option value="ST">ST</option>
+          </select>
+        </div>
       </div>
 
       {/* Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950/80 text-[10px] font-bold uppercase text-slate-400 border-b border-slate-800">
-              <tr>
-                <th className="p-4">Student</th>
-                <th className="p-4">Education</th>
-                <th className="p-4">Category</th>
-                <th className="p-4">Completion</th>
-                <th className="p-4">Applications</th>
-                <th className="p-4">Verification</th>
-                <th className="p-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 font-medium">
-              {filteredStudents.map(student => (
-                <tr key={student._id} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="p-4">
-                    <div>
-                      <span className="font-bold text-white block">{student.name}</span>
-                      <span className="text-[11px] font-mono text-slate-400">{student.email}</span>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <span className="text-slate-200">{student.educationLevel}</span>
-                    <span className="text-[10px] text-slate-400 block">{student.stream}</span>
-                  </td>
-                  <td className="p-4 font-mono">{student.category}</td>
-                  <td className="p-4 font-mono font-bold text-emerald-400">{student.profileScore}%</td>
-                  <td className="p-4 font-mono">{student.applicationsCount} active</td>
-                  <td className="p-4">
-                    {student.verificationStatus === 'Verified' ? (
-                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">Verified ✓</span>
-                    ) : student.verificationStatus === 'Flagged' ? (
-                      <span className="px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold">Flagged 🚩</span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold">Pending Review</span>
-                    )}
-                  </td>
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => setSelectedStudent(student)}
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-400"
-                        title="View Details"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleVerifyStudent(student._id)}
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400"
-                        title="Verify Student"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleFlagStudent(student._id)}
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-red-400"
-                        title="Flag Student"
-                      >
-                        <Flag className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
+      {loading ? (
+        <div className="flex justify-center p-12"><Spinner /></div>
+      ) : (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-300">
+              <thead className="bg-slate-950/80 text-[10px] font-bold uppercase text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th className="p-4">Student Name</th>
+                  <th className="p-4">Education & Stream</th>
+                  <th className="p-4">Category</th>
+                  <th className="p-4">Family Income</th>
+                  <th className="p-4">Applications</th>
+                  <th className="p-4">Account Status</th>
+                  <th className="p-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-medium">
+                {filteredStudents.map(student => (
+                  <tr key={student._id} className="hover:bg-slate-800/40 transition-colors">
+                    <td className="p-4 font-bold text-white">
+                      <div>{student.name}</div>
+                      <span className="text-[10px] font-mono text-slate-400">{student.email}</span>
+                    </td>
+                    <td className="p-4 text-slate-300">
+                      <div>{student.profile?.educationLevel || 'N/A'}</div>
+                      <span className="text-[10px] text-slate-400">{student.profile?.stream || '-'}</span>
+                    </td>
+                    <td className="p-4">
+                      <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold text-[10px]">
+                        {student.profile?.category || 'General'}
+                      </span>
+                    </td>
+                    <td className="p-4 font-mono font-bold text-emerald-400">
+                      ₹{student.profile?.annualFamilyIncome ? student.profile.annualFamilyIncome.toLocaleString() : '0'}
+                    </td>
+                    <td className="p-4 font-mono text-blue-400 font-bold">
+                      {student.applicationsCount || 0} Apps
+                    </td>
+                    <td className="p-4">
+                      <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
+                        student.status === 'Active' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                      }`}>
+                        {student.status || 'Active'}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button onClick={() => setViewStudent(student)} className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-400" title="View Details">
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => { setEditStudent(student); setActiveEditTab('personal'); }} className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-400" title="Edit Student">
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => handleToggleStatus(student)} className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400" title="Suspend/Activate">
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => setDeleteConfirm(student)} className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-red-400" title="Delete Account">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Student Details Modal */}
-      {selectedStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs" onClick={() => setSelectedStudent(null)} />
-          <div className="relative w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl z-10 text-xs">
-            <div className="flex justify-between items-start border-b border-slate-800 pb-3">
-              <div>
-                <span className="text-[10px] font-bold uppercase text-blue-400 tracking-wider">Student Profile Record</span>
-                <h3 className="text-base font-extrabold text-white mt-0.5">{selectedStudent.name}</h3>
+      {/* EDIT STUDENT MODAL */}
+      {editStudent && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-xl p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <h3 className="font-extrabold text-white text-base">✏️ Edit Student Record: {editStudent.name}</h3>
+              <button onClick={() => setEditStudent(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+
+            {/* Modal Tabs */}
+            <div className="flex border-b border-slate-800 text-xs font-bold gap-4">
+              {['personal', 'academic', 'financial', 'status'].map(tab => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveEditTab(tab)}
+                  className={`pb-2 capitalize ${activeEditTab === tab ? 'text-blue-400 border-b-2 border-blue-500' : 'text-slate-400'}`}
+                >
+                  {tab} Details
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleSaveStudent} className="space-y-4">
+              
+              {activeEditTab === 'personal' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">Student Name</label>
+                    <input
+                      type="text"
+                      value={editStudent.name}
+                      onChange={e => setEditStudent(p => ({ ...p, name: e.target.value }))}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      value={editStudent.email}
+                      onChange={e => setEditStudent(p => ({ ...p, email: e.target.value }))}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">State</label>
+                      <input
+                        type="text"
+                        value={editStudent.profile?.state || ''}
+                        onChange={e => setEditStudent(p => ({ ...p, profile: { ...p.profile, state: e.target.value } }))}
+                        className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">Age</label>
+                      <input
+                        type="number"
+                        value={editStudent.profile?.age || 18}
+                        onChange={e => setEditStudent(p => ({ ...p, profile: { ...p.profile, age: Number(e.target.value) } }))}
+                        className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeEditTab === 'academic' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">Education Level</label>
+                    <input
+                      type="text"
+                      value={editStudent.profile?.educationLevel || ''}
+                      onChange={e => setEditStudent(p => ({ ...p, profile: { ...p.profile, educationLevel: e.target.value } }))}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">Stream / Branch</label>
+                    <input
+                      type="text"
+                      value={editStudent.profile?.stream || ''}
+                      onChange={e => setEditStudent(p => ({ ...p, profile: { ...p.profile, stream: e.target.value } }))}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeEditTab === 'financial' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">Annual Family Income (₹)</label>
+                    <input
+                      type="number"
+                      value={editStudent.profile?.annualFamilyIncome || 0}
+                      onChange={e => setEditStudent(p => ({ ...p, profile: { ...p.profile, annualFamilyIncome: Number(e.target.value) } }))}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">Category</label>
+                    <select
+                      value={editStudent.profile?.category || 'General'}
+                      onChange={e => setEditStudent(p => ({ ...p, profile: { ...p.profile, category: e.target.value } }))}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs"
+                    >
+                      <option value="General">General</option>
+                      <option value="OBC">OBC</option>
+                      <option value="SC">SC</option>
+                      <option value="ST">ST</option>
+                      <option value="Minority">Minority</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {activeEditTab === 'status' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">Account Authorization Status</label>
+                    <select
+                      value={editStudent.status || 'Active'}
+                      onChange={e => setEditStudent(p => ({ ...p, status: e.target.value }))}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-bold"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Suspended">Suspended</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button type="button" onClick={() => setEditStudent(null)} className="btn btn-ghost px-4 py-2 text-xs">Cancel</button>
+                <button type="submit" className="btn btn-primary px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl">Save Changes →</button>
               </div>
-              <button onClick={() => setSelectedStudent(null)} className="p-1 text-slate-400 hover:text-white">
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3 font-mono bg-slate-950 p-4 rounded-2xl border border-slate-800">
-              <div><span className="text-[10px] text-slate-400 uppercase block">State</span><strong className="text-white">{selectedStudent.state}</strong></div>
-              <div><span className="text-[10px] text-slate-400 uppercase block">Category</span><strong className="text-white">{selectedStudent.category}</strong></div>
-              <div><span className="text-[10px] text-slate-400 uppercase block">Annual Income</span><strong className="text-emerald-400">₹{selectedStudent.annualFamilyIncome.toLocaleString()}</strong></div>
-              <div><span className="text-[10px] text-slate-400 uppercase block">Academic Score</span><strong className="text-blue-400">{selectedStudent.cgpaOrPercentage}%</strong></div>
-            </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-            <div className="pt-2 flex justify-end gap-2">
-              <button onClick={() => setSelectedStudent(null)} className="btn btn-ghost px-4 py-2 text-xs font-bold text-slate-400">Close</button>
-              <button onClick={() => { handleVerifyStudent(selectedStudent._id); setSelectedStudent(null); }} className="btn btn-primary px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl">Verify Profile</button>
+      {/* CONFIRM DELETE MODAL */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 space-y-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-red-950 border border-red-800/50 flex items-center justify-center mx-auto text-red-400">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-white text-sm">Delete Student Account?</h4>
+              <p className="text-xs text-slate-400 mt-1">Are you sure you want to delete {deleteConfirm.name}? This action cannot be undone.</p>
+            </div>
+            <div className="flex justify-center gap-3">
+              <button onClick={() => setDeleteConfirm(null)} className="btn btn-ghost px-4 py-2 text-xs">Cancel</button>
+              <button onClick={handleDeleteStudent} className="btn px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl">Confirm Delete</button>
             </div>
           </div>
         </div>

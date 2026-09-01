@@ -1,61 +1,89 @@
-import { useState } from 'react';
-import { History, ShieldCheck, User, Lock, Clock } from 'lucide-react';
-
-const DEMO_LOGS = [
-  { _id: 'l1', user: 'System Admin Rahul', role: 'admin', action: 'Document Verification Update', target: 'USS-405F21', previousStatus: 'Pending', newStatus: 'Verified', date: '02 Sep 2026', time: '11:32 AM', remarks: 'All credentials verified' },
-  { _id: 'l2', user: 'AICTE Partner Officer', role: 'partner', action: 'Stage Rejection Issued', target: 'USS-A0905F', previousStatus: 'Under Review', newStatus: 'Rejected', date: '02 Sep 2026', time: '10:15 AM', remarks: 'Expired Income Certificate' },
-  { _id: 'l3', user: 'System Admin Rahul', role: 'admin', action: 'Correction Approved', target: 'USS-A0905F', previousStatus: 'Correction Submitted', newStatus: 'Re-verification Pending', date: '02 Sep 2026', time: '09:00 AM', remarks: 'Updated document attached' },
-  { _id: 'l4', user: 'System Admin Rahul', role: 'admin', action: 'Partner Account Approved', target: 'LIC HFL Trust', previousStatus: 'Pending Approval', newStatus: 'Active', date: '01 Sep 2026', time: '04:20 PM', remarks: 'Corporate documents verified' },
-];
+import { useState, useEffect } from 'react';
+import { adminAPI } from '../services/api';
+import { History, Shield, Clock, FileText, CheckCircle2 } from 'lucide-react';
+import { Spinner } from '../components/ui/index.jsx';
+import toast from 'react-hot-toast';
 
 export default function AdminAuditLogsPage() {
-  const [logs] = useState(DEMO_LOGS);
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const fetchLogs = async () => {
+    setLoading(true);
+    try {
+      const res = await adminAPI.getAuditLogs();
+      setLogs(res.data?.auditLogs || []);
+    } catch (err) {
+      toast.error('Failed to fetch audit logs');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6 text-xs animate-fade-in">
+      
+      {/* Header */}
       <div className="flex justify-between items-center border-b border-slate-800 pb-4">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">System Audit Trail & Logs</h1>
-          <p className="text-xs text-slate-400 mt-0.5">Immutable recording of all administrative actions, verification decisions, and stage updates.</p>
+          <h1 className="text-2xl font-black text-white tracking-tight">System Audit Trail</h1>
+          <p className="text-xs text-slate-400 mt-0.5">Immutable record of administrative actions, status updates, decisions, and security events.</p>
         </div>
       </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300 font-mono">
-            <thead className="bg-slate-950/80 text-[10px] font-bold uppercase text-slate-400 border-b border-slate-800">
-              <tr>
-                <th className="p-4 font-sans">Timestamp</th>
-                <th className="p-4 font-sans">Actor / Role</th>
-                <th className="p-4 font-sans">Action</th>
-                <th className="p-4 font-sans">Target ID</th>
-                <th className="p-4 font-sans">Status Change</th>
-                <th className="p-4 font-sans">Audit Remarks</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 font-medium">
-              {logs.map(log => (
-                <tr key={log._id} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="p-4 text-slate-400">
-                    <span className="text-white block font-bold">{log.date}</span>
-                    <span className="text-[10px] text-slate-500">{log.time}</span>
-                  </td>
-                  <td className="p-4 font-sans">
-                    <span className="font-bold text-white block">{log.user}</span>
-                    <span className="text-[10px] font-mono text-blue-400 uppercase">[{log.role}]</span>
-                  </td>
-                  <td className="p-4 text-indigo-300 font-bold font-sans">{log.action}</td>
-                  <td className="p-4 text-blue-400 font-bold">{log.target}</td>
-                  <td className="p-4">
-                    <span className="text-slate-400">{log.previousStatus}</span> → <span className="text-emerald-400 font-bold">{log.newStatus}</span>
-                  </td>
-                  <td className="p-4 text-slate-300 italic font-sans">{log.remarks}</td>
+      {/* Table */}
+      {loading ? (
+        <div className="flex justify-center p-12"><Spinner /></div>
+      ) : (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-300">
+              <thead className="bg-slate-950/80 text-[10px] font-bold uppercase text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th className="p-4">Timestamp</th>
+                  <th className="p-4">Actor</th>
+                  <th className="p-4">Action Executed</th>
+                  <th className="p-4">Target Resource</th>
+                  <th className="p-4">Status Change</th>
+                  <th className="p-4">Remarks</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-medium">
+                {logs.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-6 text-center text-slate-500">No audit log records recorded yet.</td>
+                  </tr>
+                ) : (
+                  logs.map(log => (
+                    <tr key={log._id} className="hover:bg-slate-800/40 transition-colors">
+                      <td className="p-4 font-mono text-slate-400">
+                        {new Date(log.createdAt).toLocaleString()}
+                      </td>
+                      <td className="p-4 font-bold text-white">
+                        <div>{log.userName || 'System Admin'}</div>
+                        <span className="text-[10px] font-mono text-blue-400 uppercase">{log.role || 'admin'}</span>
+                      </td>
+                      <td className="p-4 font-bold text-emerald-400">{log.action}</td>
+                      <td className="p-4 font-mono text-slate-300">
+                        {log.targetType}: {log.targetId ? `#${String(log.targetId).slice(-6)}` : '-'}
+                      </td>
+                      <td className="p-4 font-mono text-slate-400">
+                        {log.previousStatus || log.newStatus ? `${log.previousStatus || 'Initiated'} → ${log.newStatus || 'Completed'}` : '-'}
+                      </td>
+                      <td className="p-4 text-slate-300 max-w-xs truncate">{log.remarks || '-'}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
+
     </div>
   );
 }

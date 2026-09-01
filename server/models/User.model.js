@@ -36,6 +36,11 @@ const userSchema = new mongoose.Schema(
       enum: ['Pending Approval', 'Verified', 'Active', 'Suspended', 'Inactive'],
       default: 'Active',
     },
+    status: {
+      type: String,
+      enum: ['Active', 'Suspended', 'Pending'],
+      default: 'Active',
+    },
     isEmailVerified: { type: Boolean, default: false },
     bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Scheme' }],
   },

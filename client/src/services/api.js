@@ -101,10 +101,22 @@ export const notificationAPI = {
   markAllRead: () => api.put('/notifications/read-all'),
 };
 
+export const profileAPI = userAPI;
+
 // ─── Admin Endpoints ─────────────────────────────────────────────────────────
 export const adminAPI = {
   getAnalytics: () => api.get('/admin/analytics'),
   exportReport: () => api.get('/admin/reports/export', { responseType: 'blob' }),
+  getStudents: () => api.get('/admin/students'),
+  updateStudent: (id, data) => api.put(`/admin/students/${id}`, data),
+  deleteStudent: (id) => api.delete(`/admin/students/${id}`),
+  getApplications: () => api.get('/admin/applications'),
+  updateApplicationStage: (id, data) => api.put(`/admin/applications/${id}/stage`, data),
+  getDocuments: () => api.get('/admin/documents'),
+  verifyDocument: (id, data) => api.put(`/admin/documents/${id}/verify`, data),
+  getPartners: () => api.get('/admin/partners'),
+  updatePartnerStatus: (id, data) => api.put(`/admin/partners/${id}/status`, data),
+  getAuditLogs: () => api.get('/admin/audit-logs'),
 };
 
 export default api;
