@@ -41,6 +41,7 @@ export default function DashboardLayout({ children }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [exploreOpen, setExploreOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => { logout(); navigate('/login'); };
@@ -416,7 +417,65 @@ export default function DashboardLayout({ children }) {
             </button>
 
             <div className="border-l border-gray-150 dark:border-slate-700 h-6 mx-0.5"></div>
-            <Avatar name={user?.name || 'U'} size="sm" src={user?.avatar} />
+
+            {/* Profile Avatar Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => { setProfileMenuOpen(!profileMenuOpen); setNotifOpen(false); setLangOpen(false); setExploreOpen(false); }}
+                className="flex items-center gap-2 p-1 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                <Avatar name={user?.name || 'U'} size="sm" src={user?.avatar} />
+                <span className="text-xs font-bold text-gray-800 dark:text-slate-200 hidden sm:inline-block max-w-[100px] truncate">
+                  {user?.name?.split(' ')[0]}
+                </span>
+              </button>
+
+              {profileMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-2xl p-2 z-50 animate-slide-up">
+                    <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-700/80 mb-1">
+                      <div className="text-xs font-black text-gray-900 dark:text-slate-100 truncate">{user?.name}</div>
+                      <div className="text-[10px] text-gray-400 dark:text-slate-500 truncate">{user?.email}</div>
+                    </div>
+
+                    <button
+                      onClick={() => { navigate('/profile'); setProfileMenuOpen(false); }}
+                      className="w-full text-left px-3 py-2 text-xs font-semibold text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-2"
+                    >
+                      <User className="w-3.5 h-3.5 text-primary-500" />
+                      <span>{t('myProfile', language)}</span>
+                    </button>
+
+                    <button
+                      onClick={() => { navigate('/applications'); setProfileMenuOpen(false); }}
+                      className="w-full text-left px-3 py-2 text-xs font-semibold text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-2"
+                    >
+                      <FileCheck className="w-3.5 h-3.5 text-purple-500" />
+                      <span>{t('myApplications', language)}</span>
+                    </button>
+
+                    <button
+                      onClick={() => { navigate('/profile'); setProfileMenuOpen(false); }}
+                      className="w-full text-left px-3 py-2 text-xs font-semibold text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-xl flex items-center gap-2"
+                    >
+                      <Shield className="w-3.5 h-3.5 text-blue-500" />
+                      <span>Account Settings</span>
+                    </button>
+
+                    <div className="border-t border-gray-100 dark:border-slate-700/80 my-1"></div>
+
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-3 py-2 text-xs font-semibold text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl flex items-center gap-2"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>{t('signOut', language)}</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
