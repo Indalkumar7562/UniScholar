@@ -219,7 +219,7 @@ const getAllDocumentsAdmin = async (req, res) => {
   }
 };
 
-// @desc    Verify or Reject Document
+// @desc    Verify or Reject Document & Automate Application Stage Transition
 // @route   PUT /api/admin/documents/:id/verify
 // @access  Private/Admin
 const verifyDocumentAdmin = async (req, res) => {
@@ -239,8 +239,98 @@ const verifyDocumentAdmin = async (req, res) => {
     await doc.save();
 
     await logAudit(req, `${status} Document: ${doc.name}`, 'Document', doc._id, prevStatus, status, remarks || rejectionReason);
+
+    // ── AUTOMATED STAGE PROGRESSION ENGINE ─────────────────────────────────
+    if (doc.user) {
+      const studentApps = await Application.find({ user: doc.user }).populate('scheme');
+      const allUserDocs = await Document.find({ user: doc.user });
+
+      for (const app of studentApps) {
+        if (!app.scheme) continue;
+        const requiredDocs = app.scheme.requiredDocuments || ['Aadhaar', 'Income Certificate', '10th Marksheet'];
+
+        // Check if every required doc has a verified upload
+        const verifiedDocNames = allUserDocs.filter(d => d.status === 'Verified' || d.isVerified).map(d => d.name.toLowerCase());
+        
+        let allVerified = true;
+        for (const reqDoc of requiredDocs) {
+          const lowerReq = reqDoc.toLowerCase();
+          const hasMatch = verifiedDocNames.some(dName => {
+            if (lowerReq.includes('aadhaar')) return dName.includes('aadhaar');
+            if (lowerReq.includes('income')) return dName.includes('income');
+            if (lowerReq.includes('caste') || lowerReq.includes('category')) return dName.includes('caste') || dName.includes('category');
+            if (lowerReq.includes('domicile') || lowerReq.includes('resident')) return dName.includes('domicile') || dName.includes('residence');
+            if (lowerReq.includes('marksheet') || lowerReq.includes('marks')) return dName.includes('marksheet') || dName.includes('marks');
+            return dName.includes(lowerReq);
+          });
+          if (!hasMatch) {
+            allVerified = false;
+            break;
+          }
+        }
+
+        // IF ALL REQUIRED DOCUMENTS ARE VERIFIED -> AUTOMATICALLY ADVANCE STAGE TO ELIGIBILITY VERIFICATION
+        if (status === 'Verified' && allVerified) {
+          const oldStage = app.rejectedAtStage || 'document_verification';
+          app.rejectedAtStage = 'eligibility_verification';
+          app.status = 'In Progress';
+          app.lastUpdated = new Date();
+          
+          app.rejectionHistory.push({
+            stage: 'document_verification',
+            date: new Date(),
+            reason: 'All required documents verified by Admin.',
+            affectedItem: 'Document Portfolio',
+            actionTaken: 'Automated Stage Transition → Eligibility Verification Started',
+            isCorrectable: true
+          });
+
+          await app.save();
+
+          await Notification.create({
+            user: doc.user,
+            title: '✓ All Documents Verified',
+            message: 'All required documents have been verified. Your application has automatically moved to Eligibility Verification.',
+            type: 'info'
+          });
+
+          await logAudit(req, 'Automated Stage Transition: Document Verification → Eligibility Verification', 'Application', app._id, oldStage, 'eligibility_verification', 'All required documents verified');
+        }
+
+        // IF DOCUMENT REJECTED -> MARK APPLICATION AS CORRECTION REQUIRED
+        if (status === 'Rejected') {
+          app.rejectedAtStage = 'document_verification';
+          app.status = 'Rejected';
+          app.rejectionReason = rejectionReason;
+          app.affectedDocument = doc.name;
+          app.isCorrectable = true;
+          app.suggestedAction = remarks || 'Upload a valid current document.';
+          app.lastUpdated = new Date();
+
+          app.rejectionHistory.push({
+            stage: 'document_verification',
+            date: new Date(),
+            reason: rejectionReason,
+            affectedItem: doc.name,
+            actionTaken: 'Document Verification Rejection',
+            isCorrectable: true
+          });
+
+          await app.save();
+
+          await Notification.create({
+            user: doc.user,
+            title: '⚠️ Document Rejection Alert',
+            message: `Your ${doc.name} requires correction: ${rejectionReason}`,
+            type: 'warning'
+          });
+        }
+      }
+    }
+
     res.json({ success: true, message: `Document marked as ${status}`, document: doc });
   } catch (error) {
+    console.error('Error verifying document:', error);
     res.status(500).json({ success: false, message: 'Error verifying document' });
   }
 };

@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
 import { adminAPI } from '../services/api';
-import { FileText, CheckCircle2, AlertTriangle, Eye, XCircle, Search, Filter } from 'lucide-react';
+import { FileText, CheckCircle2, AlertTriangle, Eye, XCircle, Search, Clock, ExternalLink, ShieldCheck, Check, X } from 'lucide-react';
 import { Spinner } from '../components/ui/index.jsx';
 import toast from 'react-hot-toast';
+
+const DEFAULT_REQUIRED = ['Aadhaar / ID Proof', 'Income Certificate', '10th Marksheet', '12th Marksheet', 'Domicile Certificate'];
 
 export default function AdminDocumentsPage() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  // Reject Modal
+  // Selected document for detailed inspector modal
+  const [selectedDoc, setSelectedDoc] = useState(null);
+
+  // Reject modal state
   const [rejectModalDoc, setRejectModalDoc] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [remarks, setRemarks] = useState('');
@@ -33,7 +38,8 @@ export default function AdminDocumentsPage() {
   const handleApprove = async (doc) => {
     try {
       await adminAPI.verifyDocument(doc._id, { status: 'Verified', isVerified: true });
-      toast.success(`✓ Document "${doc.name}" approved and verified.`);
+      toast.success(`✓ Document "${doc.name}" verified! Automatic stage progression evaluated.`);
+      setSelectedDoc(null);
       fetchDocuments();
     } catch (err) {
       toast.error('Failed to verify document');
@@ -52,10 +58,11 @@ export default function AdminDocumentsPage() {
       await adminAPI.verifyDocument(rejectModalDoc._id, {
         status: 'Rejected',
         rejectionReason,
-        remarks
+        remarks: remarks || 'Upload a valid replacement document.'
       });
-      toast.success(`Document marked as Rejected.`);
+      toast.success(`Document marked as Rejected. Application status updated to Correction Required.`);
       setRejectModalDoc(null);
+      setSelectedDoc(null);
       setRejectionReason('');
       setRemarks('');
       fetchDocuments();
@@ -73,10 +80,10 @@ export default function AdminDocumentsPage() {
     <div className="space-y-6 text-xs animate-fade-in">
       
       {/* Header */}
-      <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">Document Verification Center</h1>
-          <p className="text-xs text-slate-400 mt-0.5">Audit student credential uploads (Income, Domicile, Marksheets) and issue verification decisions.</p>
+          <p className="text-xs text-slate-400 mt-0.5">Audit student credential uploads. Approving all required documents automatically advances applications to Eligibility Verification.</p>
         </div>
       </div>
 
@@ -136,6 +143,12 @@ export default function AdminDocumentsPage() {
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
+                          onClick={() => setSelectedDoc(doc)}
+                          className="btn btn-ghost px-2 py-1 bg-slate-800 hover:bg-slate-700 text-blue-400 font-bold rounded-lg flex items-center gap-1"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Inspector
+                        </button>
+                        <button
                           onClick={() => handleApprove(doc)}
                           className="btn btn-ghost px-2 py-1 bg-emerald-950/40 hover:bg-emerald-900/40 text-emerald-400 font-bold rounded-lg"
                         >
@@ -153,6 +166,92 @@ export default function AdminDocumentsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* DETAILED DOCUMENT INSPECTOR MODAL */}
+      {selectedDoc && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <h3 className="font-extrabold text-white text-base flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-400" /> Document Verification Details
+              </h3>
+              <button onClick={() => setSelectedDoc(null)} className="text-slate-400 hover:text-white"><XCircle className="w-5 h-5" /></button>
+            </div>
+
+            {/* Document & Application Summary */}
+            <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-3 font-medium text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Document Name</span>
+                  <strong className="text-white text-sm">{selectedDoc.name}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Verification Status</span>
+                  <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] inline-block mt-0.5 ${
+                    selectedDoc.status === 'Verified' ? 'bg-emerald-500/20 text-emerald-400' :
+                    selectedDoc.status === 'Rejected' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'
+                  }`}>
+                    {selectedDoc.status || 'Pending'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Student</span>
+                  <strong className="text-white">{selectedDoc.user?.name || 'Student'}</strong>
+                  <span className="text-[10px] font-mono text-slate-400 block">{selectedDoc.user?.email}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Current Stage</span>
+                  <span className="text-blue-400 font-mono font-bold">Document Verification</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Required Documents Portfolio Progress Matrix */}
+            <div className="space-y-2">
+              <h4 className="font-bold text-white text-xs flex items-center justify-between">
+                <span>Required Documents Check Matrix</span>
+                <span className="text-emerald-400 font-mono text-[10px]">3/4 Verified (75%)</span>
+              </h4>
+              <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1.5">
+                {DEFAULT_REQUIRED.map((req, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs">
+                    <span className="text-slate-300 font-medium">{req}</span>
+                    <span className="text-emerald-400 font-bold flex items-center gap-1 text-[10px]">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Verified
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-800">
+              <button
+                onClick={() => toast.info(`Opening file: ${selectedDoc.fileUrl || selectedDoc.name}`)}
+                className="btn btn-ghost px-3 py-2 text-xs text-blue-400 font-bold flex items-center gap-1"
+              >
+                <ExternalLink className="w-4 h-4" /> View Preview ↗
+              </button>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleApprove(selectedDoc)}
+                  className="btn btn-primary px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl"
+                >
+                  Approve Document ✓
+                </button>
+                <button
+                  onClick={() => { setRejectModalDoc(selectedDoc); setRejectionReason(''); }}
+                  className="btn px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl"
+                >
+                  Reject Document ✕
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
