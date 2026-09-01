@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { adminAPI } from '../services/api';
 import { Search, Eye, CheckCircle2, AlertTriangle, XCircle, Clock, Filter, FileText, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Spinner } from '../components/ui/index.jsx';
+import StudentIdBadge from '../components/ui/StudentIdBadge.jsx';
 import toast from 'react-hot-toast';
 
 const STAGES = [
@@ -81,9 +82,11 @@ export default function AdminApplicationsPage() {
   };
 
   const filteredApps = applications.filter(a => {
-    const studentName = a.user?.name || '';
-    const schemeName = a.scheme?.name || '';
-    const matchesSearch = studentName.toLowerCase().includes(search.toLowerCase()) || schemeName.toLowerCase().includes(search.toLowerCase());
+    const q = search.toLowerCase();
+    const matchesSearch = (a.user?.name || '').toLowerCase().includes(q) || 
+                          (a.scheme?.name || '').toLowerCase().includes(q) ||
+                          (a.user?.studentId || '').toLowerCase().includes(q) ||
+                          (String(a.applicationId || a._id)).toLowerCase().includes(q);
     const matchesStage = stageFilter === 'All' || a.status === stageFilter;
     return matchesSearch && matchesStage;
   });
@@ -105,7 +108,7 @@ export default function AdminApplicationsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
             type="text"
-            placeholder="Search by student name or scholarship..."
+            placeholder="Search by Student ID, App ID, student or scheme..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none"
@@ -138,8 +141,9 @@ export default function AdminApplicationsPage() {
             <table className="w-full text-left text-xs text-slate-300">
               <thead className="bg-slate-950/80 text-[10px] font-bold uppercase text-slate-400 border-b border-slate-800">
                 <tr>
+                  <th className="p-4">Student ID</th>
                   <th className="p-4">App ID & Date</th>
-                  <th className="p-4">Student</th>
+                  <th className="p-4">Student Name</th>
                   <th className="p-4">Target Scholarship</th>
                   <th className="p-4">Current Stage</th>
                   <th className="p-4">Status</th>
@@ -149,8 +153,11 @@ export default function AdminApplicationsPage() {
               <tbody className="divide-y divide-slate-800/60 font-medium">
                 {filteredApps.map(app => (
                   <tr key={app._id} className="hover:bg-slate-800/40 transition-colors">
+                    <td className="p-4">
+                      <StudentIdBadge studentId={app.user?.studentId || 'USS-STU-2026-000001'} size="sm" />
+                    </td>
                     <td className="p-4 font-mono">
-                      <div className="font-bold text-white">#USS-{String(app._id).slice(-6).toUpperCase()}</div>
+                      <div className="font-bold text-purple-400">APP-2026-{String(app.applicationId || app._id).slice(-6).toUpperCase()}</div>
                       <span className="text-[10px] text-slate-400">{new Date(app.createdAt).toLocaleDateString()}</span>
                     </td>
                     <td className="p-4 font-bold text-white">

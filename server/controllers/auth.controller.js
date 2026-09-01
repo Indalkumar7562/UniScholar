@@ -3,6 +3,38 @@ const Profile = require('../models/Profile.model');
 const { sendTokenResponse } = require('../utils/jwt.utils');
 const { validationResult } = require('express-validator');
 
+// Helper to generate permanent unique Student ID: USS-STU-2026-000001
+const generateUniqueStudentId = async () => {
+  const count = await User.countDocuments({ role: 'student', studentId: { $exists: true, $ne: '' } });
+  const nextNum = String(count + 1).padStart(6, '0');
+  let candidate = `USS-STU-2026-${nextNum}`;
+  
+  let exists = await User.findOne({ studentId: candidate });
+  let offset = 1;
+  while (exists) {
+    candidate = `USS-STU-2026-${String(count + 1 + offset).padStart(6, '0')}`;
+    exists = await User.findOne({ studentId: candidate });
+    offset++;
+  }
+  return candidate;
+};
+
+// Automatic Backfill Migration for Existing Accounts
+const backfillStudentIds = async () => {
+  try {
+    const studentsWithoutId = await User.find({ 
+      role: 'student', 
+      $or: [{ studentId: { $exists: false } }, { studentId: '' }, { studentId: null }] 
+    });
+    for (const student of studentsWithoutId) {
+      student.studentId = await generateUniqueStudentId();
+      await student.save();
+    }
+  } catch (err) {
+    console.error('Student ID backfill notice:', err.message);
+  }
+};
+
 // Helper to seed demo accounts on demand
 const ensureDemoAccounts = async () => {
   try {
@@ -32,11 +64,13 @@ const ensureDemoAccounts = async () => {
 
     const studentExists = await User.findOne({ email: 'student@demo.com' });
     if (!studentExists) {
+      const studentId = await generateUniqueStudentId();
       const student = await User.create({
         name: 'Priya Sharma',
         email: 'student@demo.com',
         password: 'demo@123',
         role: 'student',
+        studentId: 'USS-STU-2026-000001',
         isEmailVerified: true
       });
       await Profile.create({
@@ -53,6 +87,8 @@ const ensureDemoAccounts = async () => {
         isComplete: true
       });
     }
+
+    await backfillStudentIds();
   } catch (err) {
     console.error('Demo account seeding notice:', err.message);
   }
@@ -76,12 +112,17 @@ const register = async (req, res) => {
     }
 
     const assignedRole = ['admin', 'partner'].includes(role) ? role : 'student';
+    let studentId = undefined;
+    if (assignedRole === 'student') {
+      studentId = await generateUniqueStudentId();
+    }
 
     const user = await User.create({ 
       name, 
       email, 
       password,
       role: assignedRole,
+      studentId,
       organization: organization || (assignedRole === 'partner' ? 'Scholarship Partner Org' : '')
     });
 
@@ -99,97 +140,95 @@ const register = async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 const login = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ success: false, message: errors.array()[0].msg });
-  }
+  await ensureDemoAccounts();
 
   const { email, password } = req.body;
 
-  try {
-    await ensureDemoAccounts();
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: 'Please provide email and password' });
+  }
 
+  try {
     const user = await User.findOne({ email }).select('+password');
-    if (!user || !user.password) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
     const isMatch = await user.comparePassword(password);
+
     if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    sendTokenResponse(user, 200, res, 'Login successful');
+    // Ensure studentId is backfilled if missing on login
+    if (user.role === 'student' && !user.studentId) {
+      user.studentId = await generateUniqueStudentId();
+      await user.save();
+    }
+
+    sendTokenResponse(user, 200, res, 'Logged in successfully');
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ success: false, message: 'Server error during login' });
   }
 };
 
-// @desc    Get current user
+// @desc    Get current logged in user
 // @route   GET /api/auth/me
 // @access  Private
 const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate('bookmarks');
-    res.json({ success: true, user });
+    let user = await User.findById(req.user.id);
+    if (user.role === 'student' && !user.studentId) {
+      user.studentId = await generateUniqueStudentId();
+      await user.save();
+    }
+
+    res.json({
+      success: true,
+      user,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
-// @desc    Logout (client-side token removal, but we acknowledge it)
-// @route   POST /api/auth/logout
-// @access  Private
-const logout = async (req, res) => {
-  res.json({ success: true, message: 'Logged out successfully' });
-};
-
-// Decode Google Credential JWT
-const decodeGoogleToken = (token) => {
-  try {
-    const payloadBase64 = token.split('.')[1];
-    const decoded = Buffer.from(payloadBase64, 'base64').toString('utf-8');
-    return JSON.parse(decoded);
-  } catch (err) {
-    return null;
-  }
-};
-
-// @desc    Login or register with Google
+// @desc    Google auth callback / login
 // @route   POST /api/auth/google
 // @access  Public
-const googleLogin = async (req, res) => {
-  const { credential } = req.body;
-  if (!credential) {
-    return res.status(400).json({ success: false, message: 'Google credential is required' });
-  }
-
-  const decoded = decodeGoogleToken(credential);
-  if (!decoded || !decoded.email) {
-    return res.status(400).json({ success: false, message: 'Invalid Google token' });
-  }
-
-  const { email, name, picture, sub } = decoded;
+const googleAuth = async (req, res) => {
+  const { googleId, email, name, avatar } = req.body;
 
   try {
-    let user = await User.findOne({ email });
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
 
-    if (!user) {
+    if (user) {
+      if (!user.googleId) {
+        user.googleId = googleId;
+        await user.save();
+      }
+    } else {
+      const studentId = await generateUniqueStudentId();
       user = await User.create({
-        name: name || 'Google User',
+        name,
         email,
-        googleId: sub,
-        avatar: picture || '',
+        googleId,
+        avatar: avatar || '',
+        role: 'student',
+        studentId,
         isEmailVerified: true,
       });
 
-      await Profile.create({ user: user._id, fullName: name || 'Google User', age: 18, annualFamilyIncome: 0, educationLevel: '12th Pass', category: 'General', state: 'Other' });
-    } else if (!user.googleId) {
-      user.googleId = sub;
-      if (picture && !user.avatar) user.avatar = picture;
-      user.isEmailVerified = true;
-      await user.save();
+      await Profile.create({
+        user: user._id,
+        fullName: name,
+        age: 18,
+        annualFamilyIncome: 0,
+        educationLevel: '12th Pass',
+        category: 'General',
+        state: 'Other'
+      });
     }
 
     sendTokenResponse(user, 200, res, 'Google authentication successful');
@@ -199,10 +238,26 @@ const googleLogin = async (req, res) => {
   }
 };
 
+// @desc    Logout user
+// @route   POST /api/auth/logout
+// @access  Public
+const logout = async (req, res) => {
+  res.cookie('token', 'none', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+  });
+
+  res.json({
+    success: true,
+    message: 'Logged out successfully',
+  });
+};
+
 module.exports = {
   register,
   login,
   getMe,
+  googleAuth,
   logout,
-  googleLogin,
+  ensureDemoAccounts
 };

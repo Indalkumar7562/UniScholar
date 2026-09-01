@@ -3,6 +3,7 @@ import { applicationAPI } from '../services/api';
 import { STAGES, STAGE_LABELS, calculateTrackerState } from './ApplicationTrackerPage';
 import { Search, Eye, CheckCircle2, XCircle, AlertTriangle, ShieldAlert, FileText, Clock } from 'lucide-react';
 import { Spinner } from '../components/ui/index.jsx';
+import StudentIdBadge from '../components/ui/StudentIdBadge.jsx';
 import toast from 'react-hot-toast';
 
 export default function PartnerApplicationsPage() {
@@ -79,44 +80,52 @@ export default function PartnerApplicationsPage() {
     }
   };
 
-  const filteredApplications = applications.filter(app =>
-    (app.scheme?.name || '').toLowerCase().includes(search.toLowerCase()) ||
-    app.status.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredApplications = applications.filter(a => {
+    const q = search.toLowerCase();
+    return (a.user?.name || '').toLowerCase().includes(q) ||
+           (a.scheme?.name || '').toLowerCase().includes(q) ||
+           (a.user?.studentId || '').toLowerCase().includes(q) ||
+           (String(a.applicationId || a._id)).toLowerCase().includes(q);
+  });
 
   return (
     <div className="space-y-6 text-xs animate-fade-in">
       
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Partner Application Verification</h1>
-          <p className="text-xs text-purple-400 font-bold mt-0.5">Review student credentials, audit eligibility criteria, and render stage decisions.</p>
+          <h1 className="text-2xl font-black text-white tracking-tight">Partner Application Review</h1>
+          <p className="text-xs text-slate-400 mt-0.5">Review, verify, and approve student applications submitted to your scholarship programs.</p>
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 bg-slate-900 p-3 rounded-2xl border border-slate-800">
-        <div className="relative flex-1">
+      {/* Search */}
+      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+        <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
             type="text"
-            placeholder="Search applications..."
+            placeholder="Search by Student ID, App ID, name or scheme..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+            className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none"
           />
         </div>
       </div>
 
+      {/* Table */}
       {loading ? (
-        <div className="py-20 flex justify-center"><Spinner className="w-8 h-8 text-purple-500" /></div>
+        <div className="flex justify-center p-12"><Spinner /></div>
       ) : (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-300">
               <thead className="bg-slate-950/80 text-[10px] font-bold uppercase text-slate-400 border-b border-slate-800">
                 <tr>
-                  <th className="p-4">Application ID</th>
-                  <th className="p-4">Scholarship Scheme</th>
+                  <th className="p-4">Student ID</th>
+                  <th className="p-4">App ID</th>
+                  <th className="p-4">Student Name</th>
+                  <th className="p-4">Target Scholarship</th>
                   <th className="p-4">Applied Date</th>
                   <th className="p-4">Active Stage</th>
                   <th className="p-4">Status</th>
@@ -129,8 +138,15 @@ export default function PartnerApplicationsPage() {
 
                   return (
                     <tr key={app._id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="p-4 font-mono font-bold text-purple-400">USS-{app._id.slice(-6).toUpperCase()}</td>
-                      <td className="p-4 font-bold text-white max-w-xs">{app.scheme?.name || 'Scholarship'}</td>
+                      <td className="p-4">
+                        <StudentIdBadge studentId={app.user?.studentId || 'USS-STU-2026-000001'} size="sm" />
+                      </td>
+                      <td className="p-4 font-mono font-bold text-purple-400">APP-2026-{String(app.applicationId || app._id).slice(-6).toUpperCase()}</td>
+                      <td className="p-4 font-bold text-white">
+                        <div>{app.user?.name || 'Student'}</div>
+                        <span className="text-[10px] font-mono text-slate-400">{app.user?.email || '-'}</span>
+                      </td>
+                      <td className="p-4 font-bold text-white max-w-xs truncate">{app.scheme?.name || 'Scholarship'}</td>
                       <td className="p-4 font-mono text-slate-400">{app.appliedDate ? new Date(app.appliedDate).toLocaleDateString('en-GB') : 'N/A'}</td>
                       <td className="p-4 font-bold text-slate-200">{STAGE_LABELS[app.rejectedAtStage] || tracker.currentStageObj?.label || 'Provider Review'}</td>
                       <td className="p-4">

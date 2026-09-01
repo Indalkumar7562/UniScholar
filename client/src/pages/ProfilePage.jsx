@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { userAPI, aiAPI, documentAPI } from '../services/api';
 import { t } from '../utils/translate';
 import { SectionHeader, Avatar, ProgressBar, Spinner } from '../components/ui/index.jsx';
+import StudentIdBadge from '../components/ui/StudentIdBadge.jsx';
 import { STATES_AND_DISTRICTS, STATES_LIST } from '../data/indiaLocations';
 import AcademicDetailsSection from '../components/profile/AcademicDetailsSection.jsx';
 
@@ -486,6 +487,10 @@ export default function ProfilePage() {
                 )}
               </div>
               
+              <div className="pt-1 flex flex-wrap items-center justify-center lg:justify-start gap-2">
+                <StudentIdBadge studentId={user?.studentId || 'USS-STU-2026-000001'} />
+              </div>
+
               <p className="text-xs font-bold text-primary-600 dark:text-primary-400 mt-1 flex items-center justify-center lg:justify-start gap-1">
                 <GraduationCap className="w-4 h-4 shrink-0" />
                 Student Candidate • {form.educationLevel || '12th Pass'} {form.stream ? `(${form.stream})` : ''}

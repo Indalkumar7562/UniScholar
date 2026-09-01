@@ -41,6 +41,12 @@ const userSchema = new mongoose.Schema(
       enum: ['Active', 'Suspended', 'Pending'],
       default: 'Active',
     },
+    studentId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
     isEmailVerified: { type: Boolean, default: false },
     bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Scheme' }],
   },

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { adminAPI } from '../services/api';
 import { Search, Eye, Edit3, Trash2, ShieldCheck, AlertTriangle, X, Check, Filter } from 'lucide-react';
 import { Spinner } from '../components/ui/index.jsx';
+import StudentIdBadge from '../components/ui/StudentIdBadge.jsx';
 import toast from 'react-hot-toast';
 
 const DEMO_STUDENTS = [
@@ -109,7 +110,10 @@ export default function AdminStudentsPage() {
   };
 
   const filteredStudents = students.filter(s => {
-    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase());
+    const q = search.toLowerCase();
+    const matchesSearch = s.name.toLowerCase().includes(q) || 
+                          s.email.toLowerCase().includes(q) || 
+                          (s.studentId && s.studentId.toLowerCase().includes(q));
     const matchesCategory = filterCategory === 'All' || s.profile?.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
@@ -131,7 +135,7 @@ export default function AdminStudentsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
             type="text"
-            placeholder="Search by student name or email..."
+            placeholder="Search by Student ID, name or email..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
@@ -139,14 +143,15 @@ export default function AdminStudentsPage() {
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter className="w-4 h-4 text-slate-400" />
+          <Filter className="w-4 h-4 text-slate-500" />
           <select
             value={filterCategory}
             onChange={e => setFilterCategory(e.target.value)}
-            className="bg-slate-950 border border-slate-800 text-slate-300 rounded-xl text-xs px-3 py-2 focus:outline-none"
+            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
           >
             <option value="All">All Categories</option>
             <option value="General">General</option>
+            <option value="EWS">EWS</option>
             <option value="OBC">OBC</option>
             <option value="SC">SC</option>
             <option value="ST">ST</option>
@@ -163,6 +168,7 @@ export default function AdminStudentsPage() {
             <table className="w-full text-left text-xs text-slate-300">
               <thead className="bg-slate-950/80 text-[10px] font-bold uppercase text-slate-400 border-b border-slate-800">
                 <tr>
+                  <th className="p-4">Student ID</th>
                   <th className="p-4">Student Name</th>
                   <th className="p-4">Education & Stream</th>
                   <th className="p-4">Category</th>
@@ -175,6 +181,9 @@ export default function AdminStudentsPage() {
               <tbody className="divide-y divide-slate-800/60 font-medium">
                 {filteredStudents.map(student => (
                   <tr key={student._id} className="hover:bg-slate-800/40 transition-colors">
+                    <td className="p-4">
+                      <StudentIdBadge studentId={student.studentId || 'USS-STU-2026-000001'} size="sm" />
+                    </td>
                     <td className="p-4 font-bold text-white">
                       <div>{student.name}</div>
                       <span className="text-[10px] font-mono text-slate-400">{student.email}</span>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { schemeAPI, eligibilityAPI, documentAPI, applicationAPI } from '../services/api';
 import { Avatar, SkeletonCard, ProgressBar } from '../components/ui/index.jsx';
+import StudentIdBadge from '../components/ui/StudentIdBadge.jsx';
 import SchemeCard from '../components/dashboard/SchemeCard.jsx';
 import { getDeadlineStatus, getDaysRemaining, formatDate, isExpired } from '../utils/deadline.utils';
 import { 
@@ -91,6 +92,9 @@ export default function DashboardHome() {
             <h1 className="text-2xl font-black text-gray-900 dark:text-slate-100 tracking-tight">
               Welcome back, {user?.name?.split(' ')[0] || 'Student'} 👋
             </h1>
+            <div className="pt-1">
+              <StudentIdBadge studentId={user?.studentId || 'USS-STU-2026-000001'} size="sm" />
+            </div>
             <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed font-medium">
               Find scholarships matching your profile, track active applications, and never miss a deadline.
             </p>

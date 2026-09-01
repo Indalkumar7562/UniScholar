@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { applicationAPI } from '../services/api';
 import { SectionHeader, ProgressBar, EmptyState, Spinner } from '../components/ui/index.jsx';
+import StudentIdBadge from '../components/ui/StudentIdBadge.jsx';
 import { getDeadlineStatus, getDaysRemaining, formatDate } from '../utils/deadline.utils';
 import { 
   CheckCircle2, XCircle, ExternalLink, Trash2, Send,
@@ -361,6 +362,14 @@ export default function ApplicationTrackerPage() {
                     {scheme.name || 'Scholarship Program'}
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">{scheme.ministry || 'Ministry of Education'}</p>
+
+                  {/* Student ID & Application ID Badges */}
+                  <div className="flex flex-wrap items-center gap-2 mt-2 pt-1 border-t border-slate-800/80">
+                    <StudentIdBadge studentId={app.user?.studentId || 'USS-STU-2026-000001'} size="sm" />
+                    <span className="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-mono text-purple-400 font-bold">
+                      APP ID: APP-2026-{String(app.applicationId || app._id).slice(-6).toUpperCase()}
+                    </span>
+                  </div>
 
                   {/* Rejection Alert Box */}
                   {trackerState.isRejected && (
