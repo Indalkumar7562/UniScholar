@@ -55,7 +55,20 @@ const auditLogger = (req, res, next) => {
 };
 
 // ─── Security Middleware ────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "blob:", "http:", "https:", "*"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+      fontSrc: ["'self'", "https:", "data:"],
+      connectSrc: ["'self'", "http:", "https:", "ws:", "wss:"]
+    }
+  }
+}));
 const allowedClientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 const localHostPattern = /^http:\/\/localhost(?::\d+)?$/;
 app.use(cors({
