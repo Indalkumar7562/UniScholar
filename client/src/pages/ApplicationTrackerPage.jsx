@@ -1,26 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { applicationAPI } from '../services/api';
-import SchemeCard, { handleOfficialWebsite } from '../components/dashboard/SchemeCard.jsx';
 import { SectionHeader, ProgressBar, EmptyState, Spinner } from '../components/ui/index.jsx';
-import { getDeadlineStatus, getDaysRemaining, formatDate, isExpired } from '../utils/deadline.utils';
+import { getDeadlineStatus, getDaysRemaining, formatDate } from '../utils/deadline.utils';
 import { 
-  FileCheck2, Clock, CheckCircle2, AlertCircle, XCircle, ExternalLink, Trash2, Send,
-  AlertTriangle, ArrowRight, ShieldAlert, Sparkles, RefreshCw, Upload, FileText, Check
+  CheckCircle2, XCircle, ExternalLink, Trash2, Send,
+  AlertTriangle, Sparkles, RefreshCw, Clock, ShieldAlert, Check, HelpCircle
 } from 'lucide-react';
 import { showToast } from '../utils/toastQueue';
 
-const STAGES = [
-  { id: 'submission',               label: 'Application Submission' },
-  { id: 'document_verification',    label: 'Document Verification' },
-  { id: 'eligibility_verification', label: 'Eligibility Verification' },
-  { id: 'institute_verification',   label: 'Institute Verification' },
-  { id: 'provider_review',          label: 'Provider Review' },
-  { id: 'final_approval',           label: 'Final Approval' },
-  { id: 'disbursement',             label: 'Disbursement' }
+export const STAGES = [
+  { id: 'submission',               label: 'Application Submission',        desc: 'Initial submission of your scholarship application.' },
+  { id: 'document_verification',    label: 'Document Verification',         desc: 'AI & authority audit of uploaded credentials & certificates.' },
+  { id: 'eligibility_verification', label: 'Eligibility Verification',      desc: 'Verification of income, academic score, and demographic criteria.' },
+  { id: 'institute_verification',   label: 'Institute Verification',        desc: 'Confirmation of active enrollment from your academic institution.' },
+  { id: 'provider_review',          label: 'Provider Review',               desc: 'Scholarship committee and financial board evaluation.' },
+  { id: 'final_approval',           label: 'Final Approval',                desc: 'Official selection decision and award authorization.' },
+  { id: 'disbursement',             label: 'Disbursement',                  desc: 'Direct bank account benefit transfer.' }
 ];
 
-const STAGE_LABELS = {
+export const STAGE_LABELS = {
   submission:               'Application Submission',
   document_verification:    'Document Verification',
   eligibility_verification: 'Eligibility Verification',
@@ -39,6 +38,137 @@ const STATUS_TABS = [
   { id: 'approved', label: 'Approved' },
 ];
 
+// ── STRICT SEQUENTIAL TRACKER STATE CALCULATOR ────────────────────────────
+export const calculateTrackerState = (app) => {
+  if (!app) return { stages: [], currentStageId: 'submission', overallStatus: 'in_progress', progressPercent: 0 };
+
+  const rawStatus = (app.status || 'Submitted').trim();
+  const isRejected = rawStatus === 'Rejected';
+  const isApproved = rawStatus === 'Approved';
+  const isCorrectionSubmitted = rawStatus === 'Correction Submitted';
+
+  // Determine exact current active stage index (0 to 6)
+  let activeStageIndex = 0;
+
+  if (isApproved) {
+    activeStageIndex = 6;
+  } else if (isRejected) {
+    const stageId = app.rejectedAtStage || 'document_verification';
+    const foundIdx = STAGES.findIndex(s => s.id === stageId);
+    activeStageIndex = foundIdx !== -1 ? foundIdx : 1;
+  } else if (isCorrectionSubmitted) {
+    const stageId = app.rejectedAtStage || 'document_verification';
+    const foundIdx = STAGES.findIndex(s => s.id === stageId);
+    activeStageIndex = foundIdx !== -1 ? foundIdx : 1;
+  } else if (rawStatus === 'Under Review') {
+    activeStageIndex = 4; // Provider Review
+  } else if (rawStatus === 'Submitted') {
+    activeStageIndex = 1; // Document Verification in progress
+  } else {
+    activeStageIndex = 0; // Application Submission in progress
+  }
+
+  let passedCount = 0;
+
+  // Compute status for all 7 stages sequentially
+  const computedStages = STAGES.map((stage, idx) => {
+    let stageStatus = 'pending'; // 'passed' | 'in_progress' | 'pending' | 'rejected' | 'not_reached' | 'action_required'
+    let badgeLabel = 'Pending';
+    let dateStr = null;
+
+    if (isApproved) {
+      stageStatus = 'passed';
+      badgeLabel = 'Passed';
+      passedCount = 7;
+      if (idx === 0) dateStr = app.appliedDate ? new Date(app.appliedDate).toLocaleDateString('en-GB') : null;
+      if (idx === 6) dateStr = app.lastUpdated ? new Date(app.lastUpdated).toLocaleDateString('en-GB') : null;
+    } else if (isRejected) {
+      if (idx < activeStageIndex) {
+        stageStatus = 'passed';
+        badgeLabel = 'Passed';
+        passedCount++;
+        if (idx === 0) dateStr = app.appliedDate ? new Date(app.appliedDate).toLocaleDateString('en-GB') : null;
+      } else if (idx === activeStageIndex) {
+        stageStatus = 'rejected';
+        badgeLabel = 'Rejected';
+        dateStr = app.rejectedAt ? new Date(app.rejectedAt).toLocaleDateString('en-GB') : null;
+      } else {
+        stageStatus = 'not_reached';
+        badgeLabel = 'Not Reached';
+      }
+    } else if (isCorrectionSubmitted && idx === activeStageIndex) {
+      if (idx > 0) passedCount = idx;
+      stageStatus = 'action_required';
+      badgeLabel = 'Re-verification';
+      dateStr = app.lastUpdated ? new Date(app.lastUpdated).toLocaleDateString('en-GB') : null;
+    } else {
+      if (idx < activeStageIndex) {
+        stageStatus = 'passed';
+        badgeLabel = 'Passed';
+        passedCount++;
+        if (idx === 0) dateStr = app.appliedDate ? new Date(app.appliedDate).toLocaleDateString('en-GB') : null;
+      } else if (idx === activeStageIndex) {
+        stageStatus = 'in_progress';
+        badgeLabel = 'In Progress';
+        dateStr = 'Active';
+      } else {
+        stageStatus = 'pending';
+        badgeLabel = 'Pending';
+      }
+    }
+
+    return {
+      ...stage,
+      status: stageStatus,
+      badgeLabel,
+      dateStr
+    };
+  });
+
+  // Calculate Progress Percentage based ONLY on passed stages
+  const progressPercent = isApproved ? 100 : Math.round((passedCount / 7) * 100);
+
+  // Determine Status & Next Step Messaging
+  let currentStatusText = '';
+  let nextStepText = '';
+  const activeStageObj = computedStages[activeStageIndex];
+
+  if (isApproved) {
+    currentStatusText = '🎉 Scholarship Disbursed — Benefit transferred to your registered bank account.';
+    nextStepText = 'Your scholarship application process has been completed successfully!';
+  } else if (isRejected) {
+    currentStatusText = `❌ Rejected at ${activeStageObj.label}: ${app.rejectionReason || 'Criteria mismatch'}`;
+    if (app.isCorrectable !== false) {
+      nextStepText = `Action Required: Upload/update "${app.affectedDocument || 'required details'}" to resubmit for re-verification.`;
+    } else {
+      nextStepText = 'Explore other matching scholarships available on UniScholar that fit your profile.';
+    }
+  } else if (isCorrectionSubmitted) {
+    currentStatusText = `● Correction Submitted for ${activeStageObj.label} — Re-verification in progress.`;
+    nextStepText = 'Our verification team is auditing your updated document submission.';
+  } else {
+    currentStatusText = `● Currently at ${activeStageObj.label} (${activeStageObj.desc})`;
+    const nextStageObj = computedStages[activeStageIndex + 1];
+    if (nextStageObj) {
+      nextStepText = `Once ${activeStageObj.label.toLowerCase()} is completed, your application will advance to ${nextStageObj.label}.`;
+    } else {
+      nextStepText = 'Final review in progress.';
+    }
+  }
+
+  return {
+    stages: computedStages,
+    activeStageIndex,
+    currentStageObj: activeStageObj,
+    progressPercent,
+    currentStatusText,
+    nextStepText,
+    isRejected,
+    isApproved,
+    isCorrectionSubmitted
+  };
+};
+
 export default function ApplicationTrackerPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -46,10 +176,10 @@ export default function ApplicationTrackerPage() {
   const [statusCounts, setStatusCounts] = useState({});
   const [activeTab, setActiveTab] = useState('all');
   
-  // Selected Application for Details/Tracker Modal
+  // Selected Application for Modal
   const [selectedApp, setSelectedApp] = useState(null);
   
-  // Fix Issue / Resolution Modal State
+  // Fix Issue Modal State
   const [fixModalApp, setFixModalApp] = useState(null);
   const [fixActionNote, setFixActionNote] = useState('');
   const [submittingFix, setSubmittingFix] = useState(false);
@@ -90,7 +220,7 @@ export default function ApplicationTrackerPage() {
     setSubmittingFix(true);
     try {
       const { data } = await applicationAPI.resolveRejection(fixModalApp._id, {
-        actionNote: fixActionNote.trim() || 'Uploaded corrected information and updated documents',
+        actionNote: fixActionNote.trim() || 'Uploaded corrected information and updated document',
         updatedDocumentName: fixModalApp.affectedDocument || 'Document'
       });
 
@@ -119,11 +249,6 @@ export default function ApplicationTrackerPage() {
     return true;
   });
 
-  // Calculate Stage Index helper for timeline rendering
-  const getStageIndex = (stageKey) => {
-    return STAGES.findIndex(s => s.id === stageKey);
-  };
-
   return (
     <div className="space-y-6 animate-fade-in max-w-7xl mx-auto p-4 md:p-6 text-slate-100">
       
@@ -132,7 +257,7 @@ export default function ApplicationTrackerPage() {
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">Application Tracker</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Track stage-wise progress, audit logs, rejection details, and submit corrections.
+            Track sequential stage progress, rejection audit reasons, and submit corrections.
           </p>
         </div>
         <button 
@@ -185,20 +310,18 @@ export default function ApplicationTrackerPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {filteredApplications.map((app) => {
             const scheme = app.scheme || {};
-            const isRejected = app.status === 'Rejected';
-            const isCorrectionSubmitted = app.status === 'Correction Submitted';
-            const isApproved = app.status === 'Approved';
+            const trackerState = calculateTrackerState(app);
             const deadlineStatus = getDeadlineStatus(scheme);
 
             return (
               <div
                 key={app._id}
                 className={`card p-5 space-y-4 flex flex-col justify-between relative overflow-hidden rounded-2xl border transition-all ${
-                  isRejected 
+                  trackerState.isRejected 
                     ? 'bg-red-950/20 border-red-900/40' 
-                    : isCorrectionSubmitted
+                    : trackerState.isCorrectionSubmitted
                     ? 'bg-amber-950/20 border-amber-900/40'
-                    : isApproved
+                    : trackerState.isApproved
                     ? 'bg-emerald-950/20 border-emerald-900/40'
                     : 'bg-slate-900/80 border-slate-800'
                 }`}
@@ -206,25 +329,25 @@ export default function ApplicationTrackerPage() {
                 <div>
                   {/* Status Banner */}
                   <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-                    {isRejected ? (
+                    {trackerState.isRejected ? (
                       <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1.5">
                         <XCircle className="w-3.5 h-3.5" /> 
                         Rejected at {STAGE_LABELS[app.rejectedAtStage] || 'Verification'}
                       </span>
-                    ) : isCorrectionSubmitted ? (
+                    ) : trackerState.isCorrectionSubmitted ? (
                       <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" /> 
                         Correction Submitted (Re-verification in progress)
                       </span>
-                    ) : isApproved ? (
+                    ) : trackerState.isApproved ? (
                       <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5" /> 
-                        Approved — Disbursed
+                        🎉 Scholarship Disbursed
                       </span>
                     ) : (
                       <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" /> 
-                        {app.status || 'Application Submitted'}
+                        ● {trackerState.currentStageObj?.label || 'In Progress'}
                       </span>
                     )}
 
@@ -233,14 +356,14 @@ export default function ApplicationTrackerPage() {
                     </span>
                   </div>
 
-                  {/* Title & Ministry */}
+                  {/* Program Name & Ministry */}
                   <h3 className="font-bold text-base text-white line-clamp-2">
                     {scheme.name || 'Scholarship Program'}
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5">{scheme.ministry || 'Ministry of Education'}</p>
 
                   {/* Rejection Alert Box */}
-                  {isRejected && (
+                  {trackerState.isRejected && (
                     <div className="mt-3 p-3.5 rounded-xl bg-slate-950/80 border border-red-900/40 space-y-2">
                       <div className="flex items-center justify-between text-xs font-bold text-red-400">
                         <span className="flex items-center gap-1.5">
@@ -248,7 +371,7 @@ export default function ApplicationTrackerPage() {
                           Rejection Reason:
                         </span>
                         <span className="text-[10px] font-mono text-slate-400">
-                          {app.rejectedAt ? new Date(app.rejectedAt).toLocaleDateString() : 'Recent'}
+                          {app.rejectedAt ? new Date(app.rejectedAt).toLocaleDateString('en-GB') : 'Recent'}
                         </span>
                       </div>
                       <p className="text-xs text-slate-300 leading-relaxed font-medium">
@@ -257,11 +380,10 @@ export default function ApplicationTrackerPage() {
                       
                       {app.affectedDocument && (
                         <p className="text-[11px] text-slate-400 font-mono">
-                          Affected: <span className="text-white font-bold">{app.affectedDocument}</span>
+                          Affected Item: <span className="text-white font-bold">{app.affectedDocument}</span>
                         </p>
                       )}
 
-                      {/* Correctable Badge */}
                       <div className="pt-1 flex items-center justify-between">
                         {app.isCorrectable !== false ? (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
@@ -276,23 +398,21 @@ export default function ApplicationTrackerPage() {
                     </div>
                   )}
 
-                  {/* Readiness Progress Bar */}
-                  {!isRejected && (
-                    <div className="mt-4 p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1.5">
-                      <div className="flex justify-between items-center text-xs font-semibold">
-                        <span className="text-slate-400">Application Readiness</span>
-                        <span className="font-mono text-emerald-400 font-bold">
-                          {app.readinessScore || 80}%
-                        </span>
-                      </div>
-                      <ProgressBar
-                        value={app.readinessScore || 80}
-                        color={(app.readinessScore || 80) >= 80 ? 'success' : 'warning'}
-                      />
+                  {/* Sequential Readiness & Progress Bar */}
+                  <div className="mt-4 p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1.5">
+                    <div className="flex justify-between items-center text-xs font-semibold">
+                      <span className="text-slate-400">Sequential Progress</span>
+                      <span className="font-mono text-emerald-400 font-bold">
+                        {trackerState.progressPercent}%
+                      </span>
                     </div>
-                  )}
+                    <ProgressBar
+                      value={trackerState.progressPercent}
+                      color={trackerState.progressPercent >= 80 ? 'success' : 'warning'}
+                    />
+                  </div>
 
-                  {/* Applied & Benefit Summary */}
+                  {/* Dates & Amount */}
                   <div className="mt-3 text-xs space-y-1 text-slate-400 font-mono">
                     <div className="flex justify-between">
                       <span>Benefit Amount:</span>
@@ -301,26 +421,24 @@ export default function ApplicationTrackerPage() {
                     <div className="flex justify-between">
                       <span>Applied Date:</span>
                       <span className="font-bold text-slate-200">
-                        {app.appliedDate ? new Date(app.appliedDate).toLocaleDateString() : 'Not submitted yet'}
+                        {app.appliedDate ? new Date(app.appliedDate).toLocaleDateString('en-GB') : 'Not submitted yet'}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Footer Controls */}
+                {/* Card Footer Actions */}
                 <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex gap-2 items-center flex-wrap">
                     
-                    {/* View Details / Timeline Modal Button */}
                     <button
                       onClick={() => setSelectedApp(app)}
                       className="btn btn-ghost text-xs px-3 py-1.5 font-bold text-slate-300 hover:text-white border border-slate-700 bg-slate-800/80 rounded-xl"
                     >
-                      Track & Timeline →
+                      Track Application →
                     </button>
 
-                    {/* Action Button: Fix Issue or Find Scholarships */}
-                    {isRejected && app.isCorrectable !== false && (
+                    {trackerState.isRejected && app.isCorrectable !== false && (
                       <button
                         onClick={() => {
                           setFixModalApp(app);
@@ -332,12 +450,12 @@ export default function ApplicationTrackerPage() {
                       </button>
                     )}
 
-                    {isRejected && app.isCorrectable === false && (
+                    {trackerState.isRejected && app.isCorrectable === false && (
                       <button
                         onClick={() => navigate('/results')}
                         className="btn btn-primary text-xs px-3 py-1.5 font-bold flex items-center gap-1 rounded-xl shadow"
                       >
-                        Find Other Scholarships
+                        Find Matching Scholarships
                       </button>
                     )}
                   </div>
@@ -356,204 +474,252 @@ export default function ApplicationTrackerPage() {
         </div>
       )}
 
-      {/* ── 4. DETAILED TRACKER & TIMELINE MODAL ────────────────── */}
-      {selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
-          
-          <div 
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs" 
-            onClick={() => setSelectedApp(null)} 
-          />
-
-          <div className="relative w-full max-w-2xl max-h-[88vh] flex flex-col rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden z-10 text-xs">
+      {/* ── 4. TRACK TIMELINE MODAL (APPLICATION TIMELINE AUDIT) ────── */}
+      {selectedApp && (() => {
+        const trackerState = calculateTrackerState(selectedApp);
+        
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
             
-            {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-800 flex items-start justify-between bg-slate-950/80 gap-3">
-              <div>
-                <span className="text-[10px] font-bold uppercase text-blue-400 tracking-wider">
-                  Application Timeline Audit
-                </span>
-                <h2 className="text-base sm:text-lg font-extrabold text-white leading-snug mt-0.5">
-                  {selectedApp.scheme?.name || 'Scholarship Application'}
-                </h2>
-              </div>
-              <button 
-                onClick={() => setSelectedApp(null)}
-                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white shrink-0"
-              >
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs" 
+              onClick={() => setSelectedApp(null)} 
+            />
 
-            {/* Modal Content */}
-            <div className="flex-1 p-5 sm:p-6 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-slate-700">
+            {/* Modal Box */}
+            <div className="relative w-full max-w-2xl max-h-[88vh] flex flex-col rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden z-10 text-xs">
               
-              {/* STAGE-WISE TIMELINE VISUALIZER */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Stage-Wise Progress Journey</h4>
+              {/* Modal Header */}
+              <div className="p-4 sm:p-5 border-b border-slate-800 flex items-start justify-between bg-slate-950/80 gap-3">
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-blue-400 tracking-wider">
+                    APPLICATION TIMELINE AUDIT
+                  </span>
+                  <h2 className="text-base sm:text-lg font-extrabold text-white leading-snug mt-0.5">
+                    {selectedApp.scheme?.name || 'Scholarship Application'}
+                  </h2>
+                </div>
+                <button 
+                  onClick={() => setSelectedApp(null)}
+                  className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white shrink-0"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Scrollable Content */}
+              <div className="flex-1 p-5 sm:p-6 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-slate-700">
                 
-                <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-3">
-                  {STAGES.map((stage, idx) => {
-                    const rejectedStageIdx = selectedApp.status === 'Rejected' ? getStageIndex(selectedApp.rejectedAtStage || 'document_verification') : -1;
-                    const isCurrentStageRejected = selectedApp.status === 'Rejected' && rejectedStageIdx === idx;
-                    const isPassed = selectedApp.status === 'Approved' || (rejectedStageIdx !== -1 ? idx < rejectedStageIdx : idx === 0);
-                    const isNotReached = rejectedStageIdx !== -1 && idx > rejectedStageIdx;
-                    const isPending = selectedApp.status !== 'Approved' && !isPassed && !isCurrentStageRejected;
+                {/* ── Progress Percentage Bar Banner ── */}
+                <div className="p-4 bg-slate-950/90 rounded-2xl border border-slate-800 space-y-2">
+                  <div className="flex justify-between items-center text-xs font-bold">
+                    <span className="text-slate-300">Overall Progress</span>
+                    <span className="font-mono text-emerald-400 text-sm font-black">{trackerState.progressPercent}%</span>
+                  </div>
+                  <ProgressBar value={trackerState.progressPercent} color={trackerState.progressPercent >= 80 ? 'success' : 'warning'} />
+                </div>
 
-                    return (
-                      <div key={stage.id} className="flex items-start gap-3 relative">
-                        {/* Connecting Line */}
-                        {idx < STAGES.length - 1 && (
-                          <div className={`absolute left-[13px] top-6 bottom-0 w-0.5 ${
-                            isPassed ? 'bg-emerald-500' : 'bg-slate-800'
-                          }`} />
-                        )}
+                {/* ── CURRENT STATUS & NEXT STEP BOX ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current Status</span>
+                    <p className="text-xs text-white font-medium">{trackerState.currentStatusText}</p>
+                  </div>
+                  <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Next Step</span>
+                    <p className="text-xs text-blue-300 font-medium">{trackerState.nextStepText}</p>
+                  </div>
+                </div>
 
-                        {/* Stage Node Icon */}
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 z-10 ${
-                          isPassed 
-                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500' 
-                            : isCurrentStageRejected 
-                            ? 'bg-red-500 text-white shadow-lg animate-pulse' 
-                            : 'bg-slate-800 text-slate-500 border border-slate-700'
-                        }`}>
-                          {isPassed ? '✓' : isCurrentStageRejected ? '✕' : idx + 1}
-                        </div>
+                {/* ── 7-STAGE SEQUENTIAL PROGRESS JOURNEY ── */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">STAGE-WISE PROGRESS JOURNEY</h4>
+                  
+                  <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-4">
+                    {trackerState.stages.map((stage, idx) => {
+                      const isPassed = stage.status === 'passed';
+                      const isInProgress = stage.status === 'in_progress';
+                      const isRejected = stage.status === 'rejected';
+                      const isActionReq = stage.status === 'action_required';
+                      const isNotReached = stage.status === 'not_reached';
 
-                        {/* Stage Info */}
-                        <div className="flex-1 pb-2">
-                          <div className="flex items-center justify-between">
-                            <span className={`font-bold text-xs ${
-                              isPassed ? 'text-emerald-400' : isCurrentStageRejected ? 'text-red-400' : 'text-slate-400'
-                            }`}>
-                              {stage.label}
-                            </span>
-                            
-                            {isPassed && <span className="text-[10px] text-emerald-500 font-mono font-bold">✓ Passed</span>}
-                            {isCurrentStageRejected && <span className="text-[10px] text-red-400 font-mono font-bold bg-red-950 px-2 py-0.5 rounded border border-red-800">❌ REJECTED</span>}
-                            {isNotReached && <span className="text-[10px] text-slate-600 font-mono">○ Not Reached</span>}
-                            {isPending && <span className="text-[10px] text-blue-400 font-mono">● In Progress</span>}
+                      return (
+                        <div key={stage.id} className="flex items-start gap-3.5 relative">
+                          {/* Connecting vertical line */}
+                          {idx < trackerState.stages.length - 1 && (
+                            <div className={`absolute left-[15px] top-7 bottom-0 w-0.5 ${
+                              isPassed ? 'bg-emerald-500' : 'bg-slate-800'
+                            }`} />
+                          )}
+
+                          {/* Stage Node Icon */}
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 z-10 ${
+                            isPassed 
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500' 
+                              : isCurrentStageRejected(selectedApp, idx) || isRejected
+                              ? 'bg-red-500 text-white shadow-lg animate-pulse' 
+                              : isActionReq
+                              ? 'bg-amber-500 text-slate-950 font-black'
+                              : isInProgress
+                              ? 'bg-blue-600 text-white border-2 border-blue-400 shadow-md animate-pulse'
+                              : 'bg-slate-900 text-slate-600 border border-slate-800'
+                          }`}>
+                            {isPassed ? '✓' : isRejected ? '✕' : isActionReq ? '!' : isInProgress ? '●' : '○'}
                           </div>
 
-                          {isCurrentStageRejected && (
-                            <p className="text-[11px] text-red-300 mt-1 font-medium bg-red-950/40 p-2 rounded-lg border border-red-900/30">
-                              Application stopped at this stage: {selectedApp.rejectionReason}
-                            </p>
-                          )}
+                          {/* Stage Content */}
+                          <div className="flex-1 pb-1">
+                            <div className="flex items-center justify-between">
+                              <span className={`font-bold text-xs ${
+                                isPassed ? 'text-emerald-400' : isRejected ? 'text-red-400' : isActionReq ? 'text-amber-300' : isInProgress ? 'text-blue-300' : 'text-slate-500'
+                              }`}>
+                                {stage.label}
+                              </span>
+
+                              {/* Strict Text Badges */}
+                              {isPassed && <span className="text-[10px] text-emerald-400 font-mono font-bold">Passed ✓</span>}
+                              {isInProgress && <span className="text-[10px] text-blue-400 font-mono font-bold bg-blue-950 px-2 py-0.5 rounded border border-blue-800">In Progress ●</span>}
+                              {isActionReq && <span className="text-[10px] text-amber-300 font-mono font-bold bg-amber-950 px-2 py-0.5 rounded border border-amber-800">Re-verification ●</span>}
+                              {isRejected && <span className="text-[10px] text-red-400 font-mono font-bold bg-red-950 px-2 py-0.5 rounded border border-red-800">Rejected ❌</span>}
+                              {isNotReached && <span className="text-[10px] text-slate-600 font-mono">Not Reached ○</span>}
+                              {stage.status === 'pending' && <span className="text-[10px] text-slate-600 font-mono">Pending ○</span>}
+                            </div>
+
+                            <p className="text-[11px] text-slate-400 mt-0.5 leading-normal">{stage.desc}</p>
+
+                            {isRejected && (
+                              <p className="text-[11px] text-red-300 mt-1 font-medium bg-red-950/40 p-2.5 rounded-xl border border-red-900/30">
+                                Application stopped at this stage: {selectedApp.rejectionReason}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* ── REJECTION DETAILS PANEL (IF REJECTED) ── */}
+                {trackerState.isRejected && (
+                  <div className="p-4 rounded-2xl bg-red-950/30 border border-red-900/50 space-y-4">
+                    <div className="flex items-center justify-between border-b border-red-900/40 pb-3">
+                      <h4 className="font-extrabold text-sm text-red-400 flex items-center gap-2">
+                        <ShieldAlert className="w-5 h-5 text-red-500" />
+                        ❌ Application Rejected
+                      </h4>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        Rejected on: {selectedApp.rejectedAt ? new Date(selectedApp.rejectedAt).toLocaleDateString('en-GB') : 'Recent'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Rejected Stage</span>
+                        <p className="font-bold text-white mt-0.5">{STAGE_LABELS[selectedApp.rejectedAtStage] || 'Verification'}</p>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Affected Document / Item</span>
+                        <p className="font-bold text-amber-300 mt-0.5">{selectedApp.affectedDocument || 'Profile Criteria'}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Reason</span>
+                      <p className="text-xs text-slate-200 mt-0.5 bg-slate-950 p-2.5 rounded-xl border border-slate-800 leading-relaxed font-mono">
+                        {selectedApp.rejectionReason}
+                      </p>
+                    </div>
+
+                    {/* AI-Assisted Plain Language Explanation */}
+                    <div className="p-3 bg-slate-950/90 rounded-xl border border-slate-800 space-y-1">
+                      <h5 className="font-bold text-blue-400 text-xs flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                        Why did this happen?
+                      </h5>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">
+                        {selectedApp.rejectedAtStage === 'document_verification' 
+                          ? `The verification engine flagged your "${selectedApp.affectedDocument || 'Document'}" because its data or validity date did not match profile requirements.`
+                          : selectedApp.rejectedAtStage === 'eligibility_verification'
+                          ? `Your profile financial/academic parameters exceed the hard scheme limits configured for this scholarship.`
+                          : `Your enrollment or verification details could not be validated by the authority.`}
+                      </p>
+                    </div>
+
+                    {/* Suggested Next Step */}
+                    <div className="p-3 bg-slate-950/90 rounded-xl border border-slate-800 space-y-1">
+                      <h5 className="font-bold text-emerald-400 text-xs">Suggested Next Step:</h5>
+                      <p className="text-[11px] text-slate-300">
+                        {selectedApp.suggestedAction || 'Review your submitted information and upload updated documents.'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── STATUS HISTORY AUDIT LOG ── */}
+                {selectedApp.rejectionHistory && selectedApp.rejectionHistory.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">STATUS HISTORY LOG</h4>
+                    
+                    <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 space-y-2.5 font-mono text-[11px]">
+                      {selectedApp.rejectionHistory.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-start border-b border-slate-800/60 pb-2 last:border-0 last:pb-0">
+                          <div>
+                            <span className="font-bold text-slate-200">{item.actionTaken || item.stage}</span>
+                            <p className="text-[10px] text-slate-400">{item.reason}</p>
+                          </div>
+                          <span className="text-[10px] text-slate-500">
+                            {item.date ? new Date(item.date).toLocaleDateString('en-GB') : ''}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
               </div>
 
-              {/* REJECTION DETAILS PANEL (IF REJECTED) */}
-              {selectedApp.status === 'Rejected' && (
-                <div className="p-4 rounded-2xl bg-red-950/30 border border-red-900/50 space-y-4">
-                  <div className="flex items-center justify-between border-b border-red-900/40 pb-3">
-                    <h4 className="font-extrabold text-sm text-red-400 flex items-center gap-2">
-                      <ShieldAlert className="w-5 h-5 text-red-500" />
-                      Stage Rejection Audit Details
-                    </h4>
-                    <span className="text-[10px] font-mono text-slate-400">
-                      Rejected on: {selectedApp.rejectedAt ? new Date(selectedApp.rejectedAt).toLocaleDateString() : 'Recent'}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Rejected Stage</span>
-                      <p className="font-bold text-white mt-0.5">{STAGE_LABELS[selectedApp.rejectedAtStage] || 'Verification'}</p>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Affected Item / Document</span>
-                      <p className="font-bold text-amber-300 mt-0.5">{selectedApp.affectedDocument || 'Profile Criteria'}</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Exact Reason</span>
-                    <p className="text-xs text-slate-200 mt-0.5 bg-slate-950 p-2.5 rounded-xl border border-slate-800 leading-relaxed font-mono">
-                      {selectedApp.rejectionReason}
-                    </p>
-                  </div>
-
-                  {/* AI-ASSISTED PLAIN LANGUAGE EXPLANATION */}
-                  <div className="p-3 bg-slate-950/90 rounded-xl border border-slate-800 space-y-1">
-                    <h5 className="font-bold text-blue-400 text-xs flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                      Why did this happen?
-                    </h5>
-                    <p className="text-[11px] text-slate-300 leading-relaxed">
-                      {selectedApp.rejectedAtStage === 'document_verification' 
-                        ? `The verification engine flagged your "${selectedApp.affectedDocument || 'Document'}" because its data or validity date did not match profile requirements.`
-                        : selectedApp.rejectedAtStage === 'eligibility_verification'
-                        ? `Your profile financial/academic parameters exceed the hard scheme limits configured for this scholarship.`
-                        : `Your enrollment or verification details could not be validated by the authority.`}
-                    </p>
-                  </div>
-
-                  {/* Actionable Advice */}
-                  <div className="p-3 bg-slate-950/90 rounded-xl border border-slate-800 space-y-1">
-                    <h5 className="font-bold text-emerald-400 text-xs">Recommended Action:</h5>
-                    <p className="text-[11px] text-slate-300">
-                      {selectedApp.suggestedAction || 'Review your submitted information and upload updated documents.'}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* REJECTION HISTORY AUDIT LOG */}
-              {selectedApp.rejectionHistory && selectedApp.rejectionHistory.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Application Audit Trail</h4>
-                  
-                  <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 space-y-2.5 font-mono text-[11px]">
-                    {selectedApp.rejectionHistory.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-start border-b border-slate-800/60 pb-2 last:border-0 last:pb-0">
-                        <div>
-                          <span className="font-bold text-slate-200">{item.actionTaken || item.stage}</span>
-                          <p className="text-[10px] text-slate-400">{item.reason}</p>
-                        </div>
-                        <span className="text-[10px] text-slate-500">
-                          {item.date ? new Date(item.date).toLocaleDateString() : ''}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-800 bg-slate-950/90 flex justify-between items-center gap-3">
-              <button 
-                onClick={() => setSelectedApp(null)}
-                className="btn btn-ghost px-4 py-2 text-xs font-bold text-slate-400 hover:text-white"
-              >
-                Close
-              </button>
-
-              {selectedApp.status === 'Rejected' && selectedApp.isCorrectable !== false && (
-                <button
-                  onClick={() => {
-                    setFixModalApp(selectedApp);
-                    setSelectedApp(null);
-                    setFixActionNote('');
-                  }}
-                  className="btn btn-primary px-4 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-xl shadow"
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-slate-800 bg-slate-950/90 flex justify-between items-center gap-3">
+                <button 
+                  onClick={() => setSelectedApp(null)}
+                  className="btn btn-ghost px-4 py-2 text-xs font-bold text-slate-400 hover:text-white"
                 >
-                  Fix Issue & Re-submit →
+                  Close
                 </button>
-              )}
+
+                {trackerState.isRejected && selectedApp.isCorrectable !== false && (
+                  <button
+                    onClick={() => {
+                      setFixModalApp(selectedApp);
+                      setSelectedApp(null);
+                      setFixActionNote('');
+                    }}
+                    className="btn btn-primary px-4 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-xl shadow"
+                  >
+                    Replace Document / Fix Issue →
+                  </button>
+                )}
+
+                {trackerState.isRejected && selectedApp.isCorrectable === false && (
+                  <button
+                    onClick={() => {
+                      setSelectedApp(null);
+                      navigate('/results');
+                    }}
+                    className="btn btn-primary px-4 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow"
+                  >
+                    Find Matching Scholarships →
+                  </button>
+                )}
+              </div>
+
             </div>
 
           </div>
-
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── 5. RE-APPLICATION / FIX ISSUE MODAL ────────────────── */}
       {fixModalApp && (
@@ -621,4 +787,12 @@ export default function ApplicationTrackerPage() {
 
     </div>
   );
+}
+
+// Helper for stage rejection check inside modal
+function isCurrentStageRejected(app, idx) {
+  if (app.status !== 'Rejected') return false;
+  const stageId = app.rejectedAtStage || 'document_verification';
+  const foundIdx = STAGES.findIndex(s => s.id === stageId);
+  return (foundIdx !== -1 ? foundIdx : 1) === idx;
 }
