@@ -43,6 +43,24 @@ const documentSchema = new mongoose.Schema(
     expiryDate: {
       type: Date,
     },
+    version: {
+      type: Number,
+      default: 1,
+    },
+    rejectionReason: {
+      type: String,
+      default: '',
+    },
+    versionHistory: [
+      {
+        version: Number,
+        filePath: String,
+        mimeType: String,
+        status: String,
+        rejectionReason: String,
+        uploadedAt: { type: Date, default: Date.now }
+      }
+    ],
   },
   { timestamps: true }
 );

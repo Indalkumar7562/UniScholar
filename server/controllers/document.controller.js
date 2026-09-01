@@ -28,20 +28,45 @@ const uploadDocument = async (req, res) => {
     const { category, customName, issueDate, expiryDate } = req.body;
     const documentName = customName || req.file.originalname;
 
-    // Save to Database (private document storage)
+    // Save to Database (supports replacement & version history)
     const filePath = `/uploads/documents/${req.file.filename}`;
-    const document = await Document.create({
-      user: req.user._id,
-      name: documentName,
-      originalName: req.file.originalname,
-      category: category || 'Other',
-      filePath,
-      fileSize: req.file.size,
-      mimeType: req.file.mimetype,
-      status: 'Uploaded',
-      issueDate: issueDate ? new Date(issueDate) : undefined,
-      expiryDate: expiryDate ? new Date(expiryDate) : undefined,
-    });
+    
+    let document = await Document.findOne({ user: req.user._id, name: documentName });
+    if (document) {
+      // Archive current version into history
+      document.versionHistory.push({
+        version: document.version || 1,
+        filePath: document.filePath,
+        mimeType: document.mimeType,
+        status: document.status,
+        rejectionReason: document.rejectionReason || '',
+        uploadedAt: document.createdAt || new Date()
+      });
+
+      document.version = (document.version || 1) + 1;
+      document.filePath = filePath;
+      document.originalName = req.file.originalname;
+      document.fileSize = req.file.size;
+      document.mimeType = req.file.mimetype;
+      document.status = 'Uploaded';
+      document.rejectionReason = '';
+      if (category) document.category = category;
+      await document.save();
+    } else {
+      document = await Document.create({
+        user: req.user._id,
+        name: documentName,
+        originalName: req.file.originalname,
+        category: category || 'Other',
+        filePath,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        status: 'Uploaded',
+        version: 1,
+        issueDate: issueDate ? new Date(issueDate) : undefined,
+        expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+      });
+    }
 
     // Check if we can sync to User Profile documentUploads
     const profile = await Profile.findOne({ user: req.user._id });
