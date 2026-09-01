@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { aiAPI } from '../../services/api';
 import { t } from '../../utils/translate';
-import { MessageSquare, X, Send, Volume2, VolumeX, Sparkles, AlertCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { MessageSquare, X, Send, Volume2, VolumeX, Sparkles, AlertCircle, RotateCcw } from 'lucide-react';
 
 export default function ChatbotWidget() {
   const { user, profile, language } = useAuth();
@@ -13,7 +12,7 @@ export default function ChatbotWidget() {
   const [messages, setMessages] = useState([
     {
       sender: 'bot',
-      text: 'Hello! I am your AI Welfare Assistant. How can I help you find or check scholarships today?',
+      text: 'Hello! 🎓 I am your Welfare AI Assistant. Ask me about eligible scholarships, Pragati/INSPIRE schemes, deadlines, required documents, or eligibility rules!',
       timestamp: new Date()
     }
   ]);
@@ -43,9 +42,9 @@ export default function ChatbotWidget() {
   // Read message out loud if voice is enabled
   const speakText = (text) => {
     if (!voiceEnabled || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel(); // stop any current speech
-    const utterance = new SpeechSynthesisUtterance(text);
-    // Attempt to match language (English/Hindi/Gujarati)
+    window.speechSynthesis.cancel();
+    const cleanText = text.replace(/\*\*/g, '').replace(/•/g, '');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     if (language === 'hi') utterance.lang = 'hi-IN';
     else if (language === 'gu') utterance.lang = 'gu-IN';
     else utterance.lang = 'en-IN';
@@ -54,17 +53,16 @@ export default function ChatbotWidget() {
 
   const handleSendMessage = async (textToSend) => {
     const text = textToSend || input;
-    if (!text.trim()) return;
+    if (!text || !text.trim()) return;
 
     if (!textToSend) setInput('');
 
     // Append user message
-    const userMsg = { sender: 'user', text, timestamp: new Date() };
+    const userMsg = { sender: 'user', text: text.trim(), timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
     setIsTyping(true);
 
     try {
-      // Package message with user profile context
       const profileContext = profile ? {
         age: profile.age,
         gender: profile.gender,
@@ -78,9 +76,10 @@ export default function ChatbotWidget() {
         disability: profile.disabilityStatus,
       } : null;
 
-      const { data } = await aiAPI.chat(text, profileContext);
+      const { data } = await aiAPI.chat(text.trim(), profileContext);
       
-      const botResponseText = data.response || "I'm having trouble processing that right now. Let me look at your profile schemes.";
+      const payload = data.data || data;
+      const botResponseText = payload.reply || payload.response || "Sorry, I couldn't process that request right now. Please try again.";
       
       setMessages(prev => [...prev, {
         sender: 'bot',
@@ -90,10 +89,12 @@ export default function ChatbotWidget() {
 
       speakText(botResponseText);
     } catch (err) {
-      console.error(err);
+      console.error("Chatbot Error:", err);
       setMessages(prev => [...prev, {
         sender: 'bot',
-        text: "Sorry, I encountered a connection error. Please make sure MongoDB and the backend server are running.",
+        text: "Sorry, I couldn't process that request right now. Please try again.",
+        isError: true,
+        lastQuery: text.trim(),
         timestamp: new Date()
       }]);
     } finally {
@@ -106,19 +107,49 @@ export default function ChatbotWidget() {
   };
 
   const CHIPS = [
-    { label: 'inspire', query: 'Am I eligible for the INSPIRE scholarship?' },
     { label: 'pragati', query: 'What are the rules for the Pragati Girl Students scheme?' },
-    { label: 'income', query: 'What schemes can I apply for if my income is under 2.5 lakhs?' },
-    { label: 'documents', query: 'What documents are required for Post-Matric SC/ST scholarship?' }
+    { label: 'inspire', query: 'Am I eligible for the INSPIRE scholarship?' },
+    { label: 'income', query: 'Show scholarships based on my family income.' },
+    { label: 'documents', query: 'Which documents are required for my eligible scholarships?' }
   ];
+
+  // Helper to render markdown bold & line breaks
+  const renderFormattedText = (text) => {
+    if (!text) return null;
+    const lines = text.split('\n');
+    return lines.map((line, lIdx) => {
+      const parts = line.split(/(\*\*[^*]+\*\*)/g);
+      return (
+        <div key={lIdx} className={line.trim() === '' ? 'h-1.5' : 'min-h-[1.25em]'}>
+          {parts.map((part, pIdx) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              return (
+                <strong key={pIdx} className="font-extrabold text-gray-900 dark:text-slate-100">
+                  {part.slice(2, -2)}
+                </strong>
+              );
+            }
+            return <span key={pIdx}>{part}</span>;
+          })}
+        </div>
+      );
+    });
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {/* ── Chat Panel ────────────────────────────────────────── */}
       {isOpen && (
-        <div className="w-[380px] h-[500px] mb-4 bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700 flex flex-col overflow-hidden animate-slide-up glass-modal">
+        <div className="w-[380px] h-[520px] mb-4 bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700 flex flex-col overflow-hidden animate-slide-up glass-modal">
           {/* Header */}
-          <div className="px-5 py-4 bg-gradient-to-r from-primary-600 to-violet-600 flex items-center justify-between shadow-lg text-white">
+          <div className="px-5 py-3.5 bg-gradient-to-r from-primary-600 to-violet-600 flex items-center justify-between shadow-lg text-white">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-white" />
@@ -146,43 +177,58 @@ export default function ChatbotWidget() {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-4 scrollbar-hide bg-gray-50/50 dark:bg-slate-900/30">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3.5 scrollbar-hide bg-gray-50/50 dark:bg-slate-900/30">
             {messages.map((msg, i) => (
               <div
                 key={i}
                 className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
               >
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs shadow-sm leading-relaxed ${
+                <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-xs shadow-sm leading-relaxed ${
                   msg.sender === 'user'
                     ? 'bg-primary-600 text-white rounded-tr-none'
                     : 'bg-white dark:bg-slate-700 text-gray-800 dark:text-slate-100 rounded-tl-none border border-gray-100 dark:border-slate-600/50'
                 }`}>
-                  <div>{msg.text}</div>
+                  <div>{renderFormattedText(msg.text)}</div>
+
+                  {msg.isError && (
+                    <button
+                      onClick={() => handleSendMessage(msg.lastQuery)}
+                      className="mt-2 text-[11px] font-bold text-amber-500 hover:text-amber-600 flex items-center gap-1 bg-amber-500/10 px-2 py-1 rounded-md"
+                    >
+                      <RotateCcw className="w-3 h-3" /> Try Again
+                    </button>
+                  )}
+
                   <span className={`block text-[9px] mt-1 text-right ${msg.sender === 'user' ? 'text-white/60' : 'text-gray-400 dark:text-slate-400'}`}>
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               </div>
             ))}
+
             {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-white dark:bg-slate-700 border border-gray-100 dark:border-slate-600/50 rounded-2xl rounded-tl-none px-4 py-3 flex gap-1 shadow-sm">
-                  <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-slate-300 rounded-full animate-bounce"></span>
-                  <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-slate-300 rounded-full animate-bounce delay-100"></span>
-                  <span className="w-1.5 h-1.5 bg-gray-400 dark:bg-slate-300 rounded-full animate-bounce delay-200"></span>
+              <div className="flex justify-start animate-fade-in">
+                <div className="bg-white dark:bg-slate-700 border border-gray-100 dark:border-slate-600/50 rounded-2xl rounded-tl-none px-4 py-2.5 flex items-center gap-2 shadow-sm">
+                  <div className="flex gap-1">
+                    <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce"></span>
+                    <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce delay-100"></span>
+                    <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-bounce delay-200"></span>
+                  </div>
+                  <span className="text-[11px] font-medium text-gray-400 dark:text-slate-400">AI is typing...</span>
                 </div>
               </div>
             )}
             <div ref={chatEndRef} />
           </div>
 
-          {/* Chips */}
-          <div className="px-4 py-2 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700/60 overflow-x-auto whitespace-nowrap scrollbar-hide flex gap-2">
+          {/* Quick Suggestion Chips */}
+          <div className="px-3 py-2 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700/60 overflow-x-auto whitespace-nowrap scrollbar-hide flex gap-1.5">
             {CHIPS.map((chip, idx) => (
               <button
                 key={idx}
+                type="button"
                 onClick={() => selectChip(chip.query)}
-                className="chip py-1"
+                className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-200 hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 transition-colors border border-gray-200 dark:border-slate-600 shrink-0"
               >
                 {chip.label}
               </button>
@@ -198,8 +244,9 @@ export default function ChatbotWidget() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder={t('chatPlaceholder', language)}
-              className="input text-xs"
+              className="input text-xs flex-1"
             />
             <button
               type="submit"
