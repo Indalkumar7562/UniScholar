@@ -6,12 +6,25 @@ const Profile = require('../models/Profile.model');
 // @access  Private
 const getProfile = async (req, res) => {
   try {
-    const profile = await Profile.findOne({ user: req.user._id });
+    let profile = await Profile.findOne({ user: req.user._id });
     if (!profile) {
-      return res.status(404).json({ success: false, message: 'Profile not found' });
+      profile = await Profile.create({
+        user: req.user._id,
+        fullName: req.user.name || 'Student Candidate',
+        email: req.user.email || '',
+        age: 18,
+        gender: 'Male',
+        state: 'Maharashtra',
+        district: 'Mumbai',
+        educationLevel: '12th Pass',
+        stream: 'Science',
+        category: 'General',
+        annualFamilyIncome: 150000
+      });
     }
     res.json({ success: true, profile });
   } catch (error) {
+    console.error('getProfile Error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
