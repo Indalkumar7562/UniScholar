@@ -1,5 +1,5 @@
-import AuthContainer from '../components/auth/AuthContainer.jsx';
+import UnifiedAuthContainer from '../components/auth/UnifiedAuthContainer.jsx';
 
 export default function RegisterPage() {
-  return <AuthContainer initialTab="register" />;
+  return <UnifiedAuthContainer role="student" initialTab="register" />;
 }

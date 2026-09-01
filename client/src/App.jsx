@@ -9,6 +9,7 @@ import LandingPage          from './pages/LandingPage.jsx';
 import LoginPage            from './pages/LoginPage.jsx';
 import RegisterPage         from './pages/RegisterPage.jsx';
 import AdminLoginPage       from './pages/AdminLoginPage.jsx';
+import AdminRegisterPage      from './pages/AdminRegisterPage.jsx';
 import PartnerLoginPage     from './pages/PartnerLoginPage.jsx';
 import PartnerRegisterPage  from './pages/PartnerRegisterPage.jsx';
 import AccessRestrictedPage from './pages/AccessRestrictedPage.jsx';
@@ -91,7 +92,7 @@ function AppRoutes() {
       <Route path="/student/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
 
       <Route path="/admin/login"    element={<AdminLoginPage />} />
-      <Route path="/admin/register" element={<AdminLoginPage />} />
+      <Route path="/admin/register" element={<AdminRegisterPage />} />
       
       <Route path="/partner/login"    element={<PartnerLoginPage />} />
       <Route path="/partner/register" element={<PartnerRegisterPage />} />
