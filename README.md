@@ -34,8 +34,11 @@ Document Verification
 Application Approval
         ↓
 Notification and Tracking
-🚀 Main Features
+
+🚀** Main Features**
+
 👨‍🎓 Student Features
+
 Student registration and login
 Secure authentication
 Student profile management
@@ -52,6 +55,7 @@ Application status tracking
 Application history
 Notifications
 AI-assisted scholarship assistance
+
 🛡️ Admin Features
 Admin authentication
 Scholarship scheme creation
@@ -68,6 +72,7 @@ Student information management
 Application monitoring
 Notification management
 Audit activity tracking
+
 🤝 Partner Features
 Partner authentication
 View assigned applications
@@ -75,11 +80,13 @@ Review applicant information
 Check application progress
 Participate in the verification workflow
 View relevant scholarship and application details
+
 🧠 Recommendation System
 
 The recommendation system compares student profile information with scholarship eligibility criteria and recommends suitable scholarships.
 
 Recommendation Workflow
+
 Student Opens AI Hub
         ↓
 Fetch Student Profile
@@ -97,7 +104,8 @@ Create Eligibility Result
 Display Recommended Scholarships
         ↓
 View Details, Bookmark, or Apply
-Matching Criteria
+
+**Matching Criteria**
 
 The recommendation system can compare the following information:
 
@@ -115,7 +123,8 @@ Minority status
 Disability status
 BPL status
 Scheme-specific requirements
-Recommendation Output
+
+**Recommendation Output**
 
 The system can display:
 
@@ -127,7 +136,8 @@ Missing criteria
 Reason for recommendation
 Required documents
 Application deadline
-Next action
+
+**Next action**
 
 The recommendation module is described as profile-based or AI-assisted matching unless a separately trained machine-learning model is deployed.
 
@@ -159,6 +169,7 @@ Final Approval or Rejection
 Notification to Student
         ↓
 Application Tracking
+
 🗂️ System Modules
 1. Authentication Module
 Student registration
@@ -168,6 +179,7 @@ Partner login
 JWT-based authentication
 Role-based authorization
 Protected routes
+
 2. Student Profile Module
 Personal information
 Academic information
@@ -176,6 +188,7 @@ Category details
 Location details
 Disability and BPL information
 Profile update functionality
+
 3. Scholarship Scheme Module
 Scholarship creation
 Scholarship editing
@@ -186,6 +199,7 @@ Eligibility criteria management
 Benefits and financial support
 Application deadline management
 Scholarship status management
+
 4. Eligibility Module
 Profile-based eligibility checking
 Criteria comparison
@@ -193,6 +207,7 @@ Match score calculation
 Missing criteria identification
 Eligibility result storage
 Eligibility explanation
+
 5. Application Module
 Application submission
 Application status management
@@ -200,6 +215,7 @@ Multi-stage approval workflow
 Application tracking
 Application history
 Rejection reason management
+
 6. Document Module
 Document upload
 Document storage
@@ -208,6 +224,7 @@ Document verification
 Document approval or rejection
 Verification remarks
 Document status tracking
+
 7. Notification Module
 Application status notifications
 Document verification notifications
@@ -215,6 +232,7 @@ Approval notifications
 Rejection notifications
 New scholarship notifications
 Read and unread notification status
+
 8. Audit Module
 User activity tracking
 Admin action tracking
@@ -222,6 +240,7 @@ Application history
 Document verification history
 Approval and rejection records
 System activity logs
+
 🏗️ System Architecture
                     ┌──────────────────────┐
                     │      Frontend        │
@@ -259,6 +278,7 @@ System activity logs
                     │   Redis / Services   │
                     │ Cache and Queues     │
                     └──────────────────────┘
+
 🧰 Technologies Used
 Frontend
 React.js
@@ -290,7 +310,8 @@ GitHub
 Postman
 MongoDB Compass
 Docker Desktop
-📁 Project Structure
+
+**📁 Project Structure**
 UniScholar-main/
 │
 ├── client/
@@ -326,7 +347,8 @@ UniScholar-main/
 ├── docker-compose.yml
 ├── package.json
 └── README.md
-🗃️ Database Entities
+
+**🗃️ Database Entities**
 
 The main entities in the system are:
 
@@ -339,7 +361,8 @@ EligibilityResult
 Notification
 AuditLog
 Bookmark
-Entity Relationships
+
+**Entity Relationships**
 User 1 ───────── 1 Profile
 
 User 1 ───────── M Application
@@ -362,6 +385,7 @@ User/Admin 1 ─── M AuditLog
 
 User M ────────── N Scheme
        through Bookmark
+
 ⚙️ Installation and Setup
 1. Clone the Repository
 git clone https://github.com/Indalkumar7562/Multi-Agent-AI-Platform.git
@@ -392,7 +416,7 @@ REDIS_URL=redis://localhost:6379
 
 CLIENT_URL=http://localhost:5173
 
-Do not upload the actual .env file or secret keys to GitHub.
+
 
 6. Start the Backend
 cd server
@@ -408,7 +432,8 @@ The application will normally be available at:
 
 Frontend: http://localhost:5173
 Backend:  http://localhost:8000
-🐳 Running with Docker
+
+**🐳 Running with Docker**
 
 If Docker Compose is configured in the project, run:
 
@@ -425,14 +450,17 @@ docker ps
 To view container logs:
 
 docker logs <container-name>
-🔐 Environment Variables
+
+**🔐 Environment Variables**
+
 Variable	Description
 PORT	Backend server port
 MONGODB_URI	MongoDB Atlas connection string
 JWT_SECRET	Secret key used for authentication
 REDIS_URL	Redis connection URL
 CLIENT_URL	Frontend application URL
-🧪 Testing
+
+**🧪 Testing**
 
 The project can be tested using:
 
@@ -463,7 +491,9 @@ Application status updates
 Unauthorized access prevention
 Notification generation
 Role-based access control
-🔒 Security Features
+
+**🔒 Security Features**
+
 JWT-based authentication
 Role-based authorization
 Protected API routes
@@ -474,7 +504,8 @@ Admin-only verification actions
 Environment-based secret management
 Audit logging
 Access control for student, admin, and partner roles
-📊 Project Documentation
+
+**📊 Project Documentation**
 
 The project documentation includes:
 
@@ -485,7 +516,9 @@ Scheme Details Interface
 System Architecture
 Application Workflow
 Database Relationships
-🎯 Future Enhancements
+
+**🎯 Future Enhancements**
+
 OTP-based authentication
 Email notifications
 SMS notifications
@@ -501,7 +534,9 @@ Integration with government scholarship portals
 Payment and financial-aid tracking
 Automated document validation
 AI chatbot for scholarship assistance
-🌟 Benefits of the System
+
+**🌟 Benefits of the System**
+
 Reduces manual scholarship searching
 Saves student time
 Centralizes scholarship information
@@ -512,10 +547,12 @@ Reduces administrative workload
 Helps students identify suitable scholarships
 Improves communication through notifications
 Maintains application and verification history
-👨‍💻 Contributors
+
+**👨‍💻 Contributors**
+
 Indal Kumar
 Project Team Members
-📄 License
+**📄 License**
 
 This project is developed for educational and academic purposes.
 
