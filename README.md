@@ -1,236 +1,530 @@
 # 🎓 Universal Scholarship System (USS)
 
-A full-stack **MERN** application that helps students discover and check eligibility for government scholarships based on their profile.
+A centralized digital platform for scholarship discovery, eligibility checking, application management, document verification, and approval workflows.
+
+The Universal Scholarship System helps students discover suitable scholarships, check their eligibility, submit applications, upload documents, and track application progress. Administrators can manage scholarship schemes, verify documents, and approve or reject applications.
+
+## 🌐 Live Demo
+
+🔗 **[Universal Scholarship System](https://unischolar.vercel.app/)**
 
 ---
 
-## 🛠️ Tech Stack
+## 📌 Project Overview
 
-| Layer     |   Technology                              |
-|-----------|-----------------------------------------|
-| Frontend  | React 18, Vite, Tailwind CSS v3, React Router v6 |
-| Backend   | Node.js, Express.js                     |
-| Database  | MongoDB + Mongoose ODM                  |
-| Auth      | JWT (jsonwebtoken) + bcryptjs           |
-| HTTP      | Axios                                   |
-| UI        | Lucide React icons, react-hot-toast     |
+The Universal Scholarship System is designed to simplify and digitize the scholarship application process by bringing students, administrators, and partner organizations onto a single platform.
 
----
+The system provides a complete scholarship lifecycle:
 
-## 📁 Project Structure
+```text
+Scholarship Discovery
+        ↓
+Student Profile Creation
+        ↓
+Eligibility Checking
+        ↓
+Scholarship Recommendation
+        ↓
+Application Submission
+        ↓
+Document Upload
+        ↓
+Document Verification
+        ↓
+Application Approval
+        ↓
+Notification and Tracking
+🚀 Main Features
+👨‍🎓 Student Features
+Student registration and login
+Secure authentication
+Student profile management
+Academic and financial information management
+Scholarship discovery and search
+Scholarship filtering
+Eligibility checking
+Profile-based scholarship recommendations
+Scholarship details and benefits
+Scholarship bookmarking
+Online scholarship application
+Document upload
+Application status tracking
+Application history
+Notifications
+AI-assisted scholarship assistance
+🛡️ Admin Features
+Admin authentication
+Scholarship scheme creation
+Scholarship scheme management
+Update and delete scholarship schemes
+View student applications
+View uploaded documents
+Verify uploaded documents
+Approve or reject documents
+Review applications
+Multi-stage application approval
+Application rejection with reason
+Student information management
+Application monitoring
+Notification management
+Audit activity tracking
+🤝 Partner Features
+Partner authentication
+View assigned applications
+Review applicant information
+Check application progress
+Participate in the verification workflow
+View relevant scholarship and application details
+🧠 Recommendation System
 
-```
-uss/
-├── package.json                  ← Root scripts (concurrently)
+The recommendation system compares student profile information with scholarship eligibility criteria and recommends suitable scholarships.
+
+Recommendation Workflow
+Student Opens AI Hub
+        ↓
+Fetch Student Profile
+        ↓
+Fetch Active Scholarship Schemes
+        ↓
+Compare Profile with Eligibility Criteria
+        ↓
+Calculate Match Score
+        ↓
+Identify Satisfied and Missing Criteria
+        ↓
+Create Eligibility Result
+        ↓
+Display Recommended Scholarships
+        ↓
+View Details, Bookmark, or Apply
+Matching Criteria
+
+The recommendation system can compare the following information:
+
+Age
+Gender
+State
+District
+Education
+Stream
+CGPA or percentage
+Profession
+Annual family income
+Category
+Minority status
+Disability status
+BPL status
+Scheme-specific requirements
+Recommendation Output
+
+The system can display:
+
+Scholarship name
+Match percentage
+Eligibility status
+Satisfied criteria
+Missing criteria
+Reason for recommendation
+Required documents
+Application deadline
+Next action
+
+The recommendation module is described as profile-based or AI-assisted matching unless a separately trained machine-learning model is deployed.
+
+🔄 Application Workflow
+Student Registration
+        ↓
+Student Login
+        ↓
+Profile Creation or Update
+        ↓
+Scholarship Search
+        ↓
+Eligibility Checking
+        ↓
+Scholarship Recommendation
+        ↓
+Application Submission
+        ↓
+Document Upload
+        ↓
+Admin Document Verification
+        ↓
+Application Review
+        ↓
+Partner Review, if applicable
+        ↓
+Final Approval or Rejection
+        ↓
+Notification to Student
+        ↓
+Application Tracking
+🗂️ System Modules
+1. Authentication Module
+Student registration
+Student login
+Admin login
+Partner login
+JWT-based authentication
+Role-based authorization
+Protected routes
+2. Student Profile Module
+Personal information
+Academic information
+Financial information
+Category details
+Location details
+Disability and BPL information
+Profile update functionality
+3. Scholarship Scheme Module
+Scholarship creation
+Scholarship editing
+Scholarship deletion
+Scholarship search
+Scholarship filtering
+Eligibility criteria management
+Benefits and financial support
+Application deadline management
+Scholarship status management
+4. Eligibility Module
+Profile-based eligibility checking
+Criteria comparison
+Match score calculation
+Missing criteria identification
+Eligibility result storage
+Eligibility explanation
+5. Application Module
+Application submission
+Application status management
+Multi-stage approval workflow
+Application tracking
+Application history
+Rejection reason management
+6. Document Module
+Document upload
+Document storage
+Document classification
+Document verification
+Document approval or rejection
+Verification remarks
+Document status tracking
+7. Notification Module
+Application status notifications
+Document verification notifications
+Approval notifications
+Rejection notifications
+New scholarship notifications
+Read and unread notification status
+8. Audit Module
+User activity tracking
+Admin action tracking
+Application history
+Document verification history
+Approval and rejection records
+System activity logs
+🏗️ System Architecture
+                    ┌──────────────────────┐
+                    │      Frontend        │
+                    │      React.js        │
+                    └──────────┬───────────┘
+                               │
+                               │ HTTP Requests
+                               ▼
+                    ┌──────────────────────┐
+                    │      Backend API     │
+                    │   Node.js / Express  │
+                    └──────────┬───────────┘
+                               │
+          ┌────────────────────┼────────────────────┐
+          │                    │                    │
+          ▼                    ▼                    ▼
+ ┌────────────────┐   ┌────────────────┐   ┌────────────────┐
+ │ Authentication │   │ Scholarship and│   │ Application and│
+ │ and User APIs  │   │ Eligibility API│   │ Document APIs  │
+ └────────────────┘   └────────────────┘   └────────────────┘
+          │                    │                    │
+          └────────────────────┼────────────────────┘
+                               ▼
+                    ┌──────────────────────┐
+                    │       MongoDB        │
+                    │     Database         │
+                    └──────────────────────┘
+
+                    ┌──────────────────────┐
+                    │    File Storage      │
+                    │ Uploaded Documents   │
+                    └──────────────────────┘
+
+                    ┌──────────────────────┐
+                    │   Redis / Services   │
+                    │ Cache and Queues     │
+                    └──────────────────────┘
+🧰 Technologies Used
+Frontend
+React.js
+JavaScript
+HTML5
+CSS3
+Axios
+React Router
+Backend
+Node.js
+Express.js
+JavaScript
+REST APIs
+JWT Authentication
+Database
+MongoDB
+MongoDB Atlas
+Mongoose
+Supporting Services
+Redis
+Docker
+Docker Compose
+File Storage
+Notification Services
+Development Tools
+Visual Studio Code
+Git
+GitHub
+Postman
+MongoDB Compass
+Docker Desktop
+📁 Project Structure
+UniScholar-main/
 │
-├── server/                       ← Express API
-│   ├── server.js                 ← Entry point
-│   ├── seeder.js                 ← DB seeder script
-│   ├── .env                      ← Environment variables
-│   ├── config/
-│   │   └── db.js
+├── client/
+│   ├── public/
+│   └── src/
+│       ├── components/
+│       ├── pages/
+│       │   ├── AIHub.jsx
+│       │   ├── SchemeDetailPage.jsx
+│       │   ├── EligibilityPage.jsx
+│       │   └── ApplicationTrackerPage.jsx
+│       ├── services/
+│       ├── assets/
+│       └── App.jsx
+│
+├── server/
+│   ├── controllers/
 │   ├── models/
 │   │   ├── User.model.js
 │   │   ├── Profile.model.js
 │   │   ├── Scheme.model.js
-│   │   └── EligibilityResult.model.js
-│   ├── controllers/
-│   │   ├── auth.controller.js
-│   │   ├── user.controller.js
-│   │   ├── scheme.controller.js
-│   │   └── eligibility.controller.js
+│   │   ├── Application.model.js
+│   │   ├── Document.model.js
+│   │   ├── EligibilityResult.model.js
+│   │   ├── Notification.model.js
+│   │   └── AuditLog.model.js
 │   ├── routes/
-│   │   ├── auth.routes.js
-│   │   ├── user.routes.js
-│   │   ├── scheme.routes.js
-│   │   └── eligibility.routes.js
+│   ├── services/
 │   ├── middleware/
-│   │   ├── auth.middleware.js
-│   │   └── error.middleware.js
-│   └── utils/
-│       ├── jwt.utils.js
-│       └── eligibility.utils.js
+│   ├── config/
+│   └── server.js
 │
-└── client/                       ← React + Tailwind Frontend
-    ├── index.html
-    ├── vite.config.js
-    ├── tailwind.config.js
-    ├── postcss.config.js
-    └── src/
-        ├── main.jsx
-        ├── App.jsx
-        ├── index.css
-        ├── services/
-        │   └── api.js             ← Axios API service
-        ├── context/
-        │   └── AuthContext.jsx    ← Global auth state
-        ├── components/
-        │   ├── ui/
-        │   │   └── index.jsx      ← Reusable UI components
-        │   ├── layout/
-        │   │   └── DashboardLayout.jsx
-        │   └── dashboard/
-        │       └── SchemeCard.jsx
-        └── pages/
-            ├── LandingPage.jsx
-            ├── LoginPage.jsx
-            ├── RegisterPage.jsx
-            ├── DashboardHome.jsx
-            ├── ProfilePage.jsx
-            ├── EligibilityPage.jsx
-            ├── ResultsPage.jsx
-            ├── SchemesPage.jsx
-            └── SchemeDetailPage.jsx
-```
+├── docker-compose.yml
+├── package.json
+└── README.md
+🗃️ Database Entities
 
----
+The main entities in the system are:
 
-## 🚀 Getting Started
+User
+Profile
+Scheme
+Application
+Document
+EligibilityResult
+Notification
+AuditLog
+Bookmark
+Entity Relationships
+User 1 ───────── 1 Profile
 
-### Prerequisites
-- Node.js v18+
-- MongoDB (local or Atlas)
+User 1 ───────── M Application
 
-### 1. Clone & Install
+Scheme 1 ─────── M Application
 
-```bash
-# Install root dependencies
+User 1 ───────── M Document
+
+Application 1 ── M Document
+
+User 1 ───────── M EligibilityResult
+
+Profile 1 ────── M EligibilityResult
+
+Scheme 1 ─────── M EligibilityResult
+
+User 1 ───────── M Notification
+
+User/Admin 1 ─── M AuditLog
+
+User M ────────── N Scheme
+       through Bookmark
+⚙️ Installation and Setup
+1. Clone the Repository
+git clone https://github.com/Indalkumar7562/Multi-Agent-AI-Platform.git
+2. Open the Project Directory
+cd Multi-Agent-AI-Platform
+3. Install Backend Dependencies
+cd server
 npm install
+4. Install Frontend Dependencies
 
-# Install all (server + client)
-npm run install:all
-```
+Open another terminal:
 
-### 2. Configure Environment
+cd client
+npm install
+5. Configure Environment Variables
 
-```bash
-cd server
-cp .env.example .env
-```
+Create a .env file inside the backend directory.
 
-Edit `server/.env`:
-```
-MONGO_URI=mongodb://localhost:27017/scholarship_db
-JWT_SECRET=your_super_secret_key_here
-PORT=5000
+Example:
+
+PORT=8000
+
+MONGODB_URI=your_mongodb_connection_string
+
+JWT_SECRET=your_jwt_secret
+
+REDIS_URL=redis://localhost:6379
+
 CLIENT_URL=http://localhost:5173
-```
 
-### 3. Seed the Database
+Do not upload the actual .env file or secret keys to GitHub.
 
-```bash
+6. Start the Backend
 cd server
-node seeder.js
-```
-
-This creates:
-- **10 scholarship schemes**
-- **Admin user**: `admin@uss.gov.in` / `admin@123`
-- **Demo student**: `student@demo.com` / `demo@123`
-
-### 4. Run Development Servers
-
-```bash
-# From project root — runs both client + server
 npm run dev
-```
+7. Start the Frontend
 
-| Service  | URL                        |
-|----------|----------------------------|
-| Frontend | http://localhost:5173       |
-| Backend  | http://localhost:5000       |
-| API Health | http://localhost:5000/api/health |
+Open another terminal:
 
----
+cd client
+npm run dev
 
-## 🔌 API Endpoints
+The application will normally be available at:
 
-### Auth
-| Method | Endpoint              | Description          |
-|--------|-----------------------|----------------------|
-| POST   | `/api/auth/register`  | Register new user    |
-| POST   | `/api/auth/login`     | Login & get JWT      |
-| GET    | `/api/auth/me`        | Get current user     |
-| POST   | `/api/auth/logout`    | Logout               |
+Frontend: http://localhost:5173
+Backend:  http://localhost:8000
+🐳 Running with Docker
 
-### Users / Profile
-| Method | Endpoint                      | Description            |
-|--------|-------------------------------|------------------------|
-| GET    | `/api/users/profile`          | Get user profile       |
-| PUT    | `/api/users/profile`          | Create / update profile|
-| GET    | `/api/users/bookmarks`        | Get bookmarked schemes |
-| POST   | `/api/users/bookmarks/:id`    | Toggle bookmark        |
+If Docker Compose is configured in the project, run:
 
-### Schemes
-| Method | Endpoint           | Description            |
-|--------|--------------------|------------------------|
-| GET    | `/api/schemes`     | Get all (search/filter)|
-| GET    | `/api/schemes/:id` | Get single scheme      |
-| POST   | `/api/schemes`     | Create (Admin only)    |
-| PUT    | `/api/schemes/:id` | Update (Admin only)    |
-| DELETE | `/api/schemes/:id` | Delete (Admin only)    |
+docker compose up --build
 
-### Eligibility
-| Method | Endpoint                   | Description               |
-|--------|----------------------------|---------------------------|
-| POST   | `/api/eligibility/check`   | Run eligibility check     |
-| GET    | `/api/eligibility/results` | Get last check results    |
+To stop the containers:
 
----
+docker compose down
 
-## 🎨 Pages & Features
+To view running containers:
 
-| Page              | Route          | Description                              |
-|-------------------|----------------|------------------------------------------|
-| Landing           | `/`            | Hero, features, stats, how-it-works      |
-| Login             | `/login`       | JWT auth with demo credentials           |
-| Register          | `/register`    | Account creation with validation         |
-| Dashboard         | `/dashboard`   | Stats, CTA cards, featured schemes       |
-| Profile           | `/profile`     | 8-field form with progress tracker       |
-| Eligibility Check | `/eligibility` | Animated check with step-by-step progress|
-| Results           | `/results`     | Filter/search eligible vs not eligible   |
-| Browse Schemes    | `/schemes`     | Paginated, searchable, filterable grid   |
-| Scheme Detail     | `/schemes/:id` | Full info, criteria, docs, apply button  |
+docker ps
 
-### ✨ Extra Features
-- 🌙 **Dark mode** toggle
-- 🔖 **Bookmark** schemes
-- 🔍 **Search + filter** schemes by category
-- 💀 **Skeleton loaders** for async data
-- 🔔 **Toast notifications** (react-hot-toast)
-- 📱 **Fully responsive** — mobile hamburger sidebar
-- 🔐 **Protected routes** with JWT
-- ⚡ **Eligibility engine** checks income, age, category, education, state, gender, disability
+To view container logs:
 
----
+docker logs <container-name>
+🔐 Environment Variables
+Variable	Description
+PORT	Backend server port
+MONGODB_URI	MongoDB Atlas connection string
+JWT_SECRET	Secret key used for authentication
+REDIS_URL	Redis connection URL
+CLIENT_URL	Frontend application URL
+🧪 Testing
 
-## 🌱 Seeded Scholarship Schemes
+The project can be tested using:
 
-1. PM National Scholarship Scheme
-2. SC/ST Post Matric Scholarship
-3. OBC Pre-Matric Scholarship
-4. Central Sector Scholarship for College Students
-5. Minority Pre-Matric Scholarship
-6. Rajiv Gandhi National Fellowship
-7. INSPIRE Scholarship for Higher Education
-8. Pragati Scholarship for Girl Students
-9. National Means-cum-Merit Scholarship
-10. Ishan Uday Special Scholarship – North East
+Postman for API testing
+Browser testing for frontend functionality
+MongoDB Atlas for database verification
+MongoDB Compass for local database inspection
+Docker logs for service monitoring
+OWASP ZAP for security testing
+Manual role-based workflow testing
+Important Test Cases
+Student registration
+Student login
+Invalid login credentials
+Profile creation
+Profile update
+Scholarship search
+Scholarship filtering
+Eligibility calculation
+Recommendation result generation
+Application submission
+Document upload
+Document approval
+Document rejection
+Application approval
+Application rejection
+Application status updates
+Unauthorized access prevention
+Notification generation
+Role-based access control
+🔒 Security Features
+JWT-based authentication
+Role-based authorization
+Protected API routes
+Password encryption
+Input validation
+Secure document access
+Admin-only verification actions
+Environment-based secret management
+Audit logging
+Access control for student, admin, and partner roles
+📊 Project Documentation
 
----
+The project documentation includes:
 
-## 🏗️ Build for Production
+Entity Relationship Diagram
+Data Flow Diagram
+Recommendation System Workflow
+Scheme Details Interface
+System Architecture
+Application Workflow
+Database Relationships
+🎯 Future Enhancements
+OTP-based authentication
+Email notifications
+SMS notifications
+Real-time notification system
+Advanced machine-learning recommendation model
+OCR-based document verification
+Automatic fraud detection
+Scholarship deadline reminders
+Multilingual support
+Mobile application
+Advanced analytics dashboard
+Integration with government scholarship portals
+Payment and financial-aid tracking
+Automated document validation
+AI chatbot for scholarship assistance
+🌟 Benefits of the System
+Reduces manual scholarship searching
+Saves student time
+Centralizes scholarship information
+Simplifies application submission
+Improves document verification
+Provides transparent application tracking
+Reduces administrative workload
+Helps students identify suitable scholarships
+Improves communication through notifications
+Maintains application and verification history
+👨‍💻 Contributors
+Indal Kumar
+Project Team Members
+📄 License
 
-```bash
-# Build React client
-npm run build
+This project is developed for educational and academic purposes.
 
-# Serve with a process manager (e.g. PM2)
-cd server && npm start
-```
+⭐ Support
 
----
+If you find this project useful, please consider giving the repository a star on GitHub.
 
-## 📄 License
+🔗 GitHub Repository:
+https://github.com/Indalkumar7562/Multi-Agent-AI-Platform.git
 
-MIT — free to use for educational and personal projects.
+🔗 Live Application:
+https://unischolar.vercel.app/
